@@ -43,7 +43,7 @@ semantic ones (like module resolution errors, unknown variable is used etc) are 
 One of the point to have is that module resolution can greately slow down the compilation speed. Taking this into account, one can consider switching it on, i.e. `noResolve: true`, during intensive period of app development and having Meteor running at the same time.
 TypeScript will skip resolving each module while continue cursing on syntactic errors. This can greately increase speed of the Meteor re-start on each file change.
 
-At the end of the day, you can switch `noResolve` back to false and re-start Meteor. Thus, you'll check all possible mistakes you could have made including missing modules errors or incorrect API usage etc. You can treat it partly as the schema one expects to use with non-script languages like Java etc. Usually there you make changes first, only then compile to check if there is any mistakes.
+At the end of the day, you can switch `noResolve` back to false, set `useCache` to false and re-start Meteor. After, you'll see all possible mistakes you could have made including missing modules errors or incorrect API usage etc. You can treat it partly as the way one developes with non-script languages like Java etc. Usually there you make changes first, after compile to check if there is any mistakes.
 
 #### Example of usage
 Please, check Angular2's demo called Parties [here](https://github.com/Urigo/Meteor-Angular2/tree/master/examples/parties). It's built fully in TypeScript and uses `.tsconfig` as well.
