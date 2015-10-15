@@ -34,6 +34,7 @@ Most compiler options stay intact except few cases. You can read about them
 [here](https://github.com/barbatus/angular2/tree/master/packages/typescript).
 
 A couple of additional options have been added: `alwaysThrow` and `useCache`.
+
 When `alwaysThrow` is set, the compiler will always throw exceptions whenever syntactic or symantic error
 occurs. Otherwise, it throws by default only on syntactic errors,
 semantic ones (like module resolution errors, unknown variables etc) are just printed to the terminal.
