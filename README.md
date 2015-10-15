@@ -33,10 +33,12 @@ except whole config structure is treated as `compilerOptions` part;
 Most compiler options stay intact except few cases. You can read about them
 [here](https://github.com/barbatus/angular2/tree/master/packages/typescript).
 
-One additional options that has been added — `alwaysThrow`.
-When set, the compiler will always throw exceptions whenever syntactic or symantic error
+A couple of additional options have been added: `alwaysThrow` and `useCache`.
+When `alwaysThrow` is set, the compiler will always throw exceptions whenever syntactic or symantic error
 occurs. Otherwise, it throws by default only on syntactic errors,
-semantic ones (like module resolution errors, unknown variable is used etc) are just printed to the terminal.
+semantic ones (like module resolution errors, unknown variables etc) are just printed to the terminal.
+
+`useCache` simple says compiler to turn on/off caching results.
 
 #### Compilation Speed-up
 `noResolve` configuration option is responsible for module resolution process same as the original one is supposed to be.
