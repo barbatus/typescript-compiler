@@ -31,7 +31,7 @@ except whole config structure is treated as `compilerOptions` part;
 `files` part is omitted due to lack of necessity.
 
 Most compiler options stay intact except few cases. You can read about them
-[here](https://github.com/barbatus/angular2/tree/master/packages/typescript).
+[here](https://github.com/barbatus/typescript).
 
 A couple of additional options have been added: `alwaysThrow` and `useCache`.
 
