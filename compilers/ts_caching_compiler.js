@@ -11,7 +11,8 @@ class TsCachingCompiler extends MultiFileCachingCompiler {
   }
 
   getCacheKey(file) {
-    return file.getSourceHash();
+    return this.tsconfig.useCash ?
+      file.getSourceHash() : Date.now();
   }
 
   compileResultSize(result) {

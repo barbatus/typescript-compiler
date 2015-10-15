@@ -16,7 +16,8 @@ TsBasicCompiler = class TsBasicCompiler {
       target: ts.ScriptTarget.ES5,
       sourceMap: true,
       noResolve: false, // By default TS will resolve all modules.
-      diagnostics: true
+      diagnostics: true,
+      useCash: true
     };
   }
 
@@ -50,6 +51,10 @@ TsBasicCompiler = class TsBasicCompiler {
         column: diagnostic.column
       });
     });
+
+    // Disables package diagnostics for time being.
+    let pkgName = file.getPackageName();
+    if (pkgName) return;
 
     if (this.tsconfig.alwaysThrow) {
       diagnostics.semantic.forEach(diagnostic => {
