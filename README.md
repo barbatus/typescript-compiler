@@ -2,7 +2,7 @@
 
 Package exposes two TypeScript compilers: one basic compiler `TsCompiler` and one caching compiler `TsCachingCompiler` to be used in a Meteor compiler plugin.
 
-[This](https://github.com/barbatus/angular2/tree/master/packages/typescript) TypeScript package is used as a TypeScript provider.
+[This](https://github.com/barbatus/typescript) TypeScript package is used as a TypeScript provider.
 
 ### Getting Started
 Register a TS plugin with one of two provided compilers as follows: 
