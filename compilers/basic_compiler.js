@@ -15,9 +15,13 @@ TsBasicCompiler = class TsBasicCompiler {
       module : ts.ModuleKind.System,
       target: ts.ScriptTarget.ES5,
       sourceMap: true,
-      noResolve: false, // By default TS will resolve all modules.
+      // By default TS will resolve all modules.
+      noResolve: false,
       diagnostics: true,
-      useCash: true
+      useCash: true,
+      // Will always emit class metadata,
+      // especially useful in Angular2
+      emitDecoratorMetadata: true
     };
   }
 
