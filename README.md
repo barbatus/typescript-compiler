@@ -11,27 +11,22 @@ Plugin.registerCompiler({
   extensions: ['ts'],
 }, () => new TsCachingCompiler());
 ````
-And you are ready to go.
+And you are all set.
 
 ### Compilers
 #### TsCompiler
-To be used for compilation of all provided `.ts`-files at once with `TypeScript.transpileFiles` method being used internally.
+Compilales all passed `.ts`-files at once using internally `TypeScript.transpileFiles`.
 
-One of the its benefits can be improved speed at least on the initial Meteor run. Since all files are provided in a batch,
-TypeScript compiles them more effiently using internal cache.
+One of its potential benefits is faster compilation speed on the initial Meteor run. Given that all files are provided to the TypeScript transpiler in a batch, TypeScript can transpile them more effiently using internal cache.
 
 #### TsCachingCompiler
-Extends Meteor's [`MultiFileCachingCompiler`](https://atmospherejs.com/meteor/caching-compiler). `TsCachingCompiler` compiles files one by one using
-file hashes to avoid tranforming pristine files. `TypeScript.transpile` is used internally to transpile file contents.
+Extends Meteor's [`MultiFileCachingCompiler`](https://atmospherejs.com/meteor/caching-compiler) and compiles one file content per time using this method [`TypeScript.transpile`](https://github.com/barbatus/typescript/blob/master/typescript.js#L96) internally.
 
 #### TypeScript Config
 Compilers can be configured via `.tsconfig` in the app root folder.
-Format of the `.tsconfig` is pretty much the same as [here](https://github.com/Microsoft/TypeScript/wiki/tsconfig.json),
-except whole config structure is treated as `compilerOptions` part;
-`files` part is omitted due to lack of necessity.
+Format of the `.tsconfig` follows the `compilerOptions` part with the same options as you can fine in the standard `.tsconfig` file [here](https://github.com/Microsoft/TypeScript/wiki/tsconfig.json); `files` part is omitted.
 
-Most compiler options stay intact except few cases. You can read about them
-[here](https://github.com/barbatus/typescript).
+Some of the TypeScript options are preset to be always turned on or off having in mind details of the Meteor environment. You can read about exceptions [here](https://github.com/barbatus/typescript).
 
 A couple of additional options have been added: `alwaysThrow` and `useCache`.
 
@@ -42,11 +37,11 @@ semantic ones (like module resolution errors, unknown variables etc) are just pr
 `useCache` simple says compiler to turn on/off caching results.
 
 #### Compilation Speed-up
-`noResolve` configuration option is responsible for module resolution process same as the original one is supposed to be.
-One of the point to have is that module resolution can greately slow down the compilation speed. Taking this into account, one can consider switching it on, i.e. `noResolve: true`, during intensive period of app development and having Meteor running at the same time.
+`noResolve` configuration option is responsible for module resolution process same as the original option is designated for.
+One of the reason to have it is that module resolution can greately slow down the compilation speed. Taking this into account, one can consider switching it on, i.e. `noResolve: true`, during intensive period of the app development and having Meteor running at the same time.
 TypeScript will skip resolving each module while continue cursing on syntactic errors. This can greately increase speed of the Meteor re-start on each file change.
 
-At the end of the day, you can switch `noResolve` back to false, set `useCache` to false and re-start Meteor. After, you'll see all possible mistakes you could have made including missing modules errors or incorrect API usage etc. You can treat it partly as the way one developes with non-script languages like Java etc. Usually there you make changes first, after compile to check if there is any mistakes.
+From time to time you can switch `noResolve` back to false with the `useCache` set to false and re-start Meteor. Havind done this, you'll see all possible mistakes you could have made including missing modules errors or incorrect API usage etc. You can treat it as the way compilation process goes with the non-script languages like Java etc. Usually you make changes first there, then you compile the code to check if there is any mistakes.
 
 #### Example of usage
-Please, check Angular2's demo called Parties [here](https://github.com/Urigo/Meteor-Angular2/tree/master/examples/parties). It's built fully in TypeScript and uses `.tsconfig` as well.
+Please, check Angular2's demo called Socially [here](https://github.com/Urigo/Meteor-Angular2/tree/master/examples/parties). It's built fully in TypeScript and uses `.tsconfig` as well.
