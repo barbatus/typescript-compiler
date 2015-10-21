@@ -3,7 +3,7 @@ TsCachingCompiler =
 class TsCachingCompiler extends MultiFileCachingCompiler {
   constructor() {
     super({
-      compilerName: 'ts-caching-compier',
+      compilerName: 'ts-caching-compiler',
       defaultCacheSize: 1024 * 1024 * 10
     });
 
@@ -58,7 +58,6 @@ class TsCachingCompiler extends MultiFileCachingCompiler {
     var type = result.type;
 
     switch (type) {
-      case 'd': return file.addAsset(result);
       case 'ts': return file.addJavaScript(result);
     }
   }
