@@ -21,7 +21,10 @@ TsBasicCompiler = class TsBasicCompiler {
       useCash: true,
       // Will always emit class metadata,
       // especially useful in Angular2
-      emitDecoratorMetadata: true
+      emitDecoratorMetadata: true,
+      // Will copy typings from packages to
+      // the typings folder.
+      includePackageTypings: true
     };
   }
 

@@ -1,6 +1,6 @@
 Package.describe({
   name: 'barbatus:ts-compilers',
-  version: '0.1.5',
+  version: '0.1.6_1',
   summary: 'TypeScript Compilers for Meteor',
   git: 'https://github.com/barbatus/ts-compilers',
   documentation: 'README.md'
@@ -8,7 +8,8 @@ Package.describe({
 
 Npm.depends({
   'typescript': '1.6.2',
-  'mkdirp': '0.5.0'
+  'mkdirp': '0.5.0',
+  'chalk': '1.1.1'
 });
 
 var server = 'server';
@@ -28,11 +29,10 @@ Package.onUse(function(api) {
     'compilers/utils.js',
     'compilers/basic_compiler.js',
     'compilers/ts_compiler.js',
-    'compilers/ts_caching_compiler.js',
-    'compilers/dts_processor.js',
+    'compilers/ts_caching_compiler.js'
   ], server);
 
-  api.export(['TsCompiler', 'TypingsProcessor', 'TsCachingCompiler'], server);
+  api.export(['TsCompiler', 'TsCachingCompiler'], server);
 });
 
 Package.onTest(function(api) {
