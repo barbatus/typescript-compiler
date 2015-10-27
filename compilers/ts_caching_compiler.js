@@ -90,6 +90,21 @@ class TsCachingCompiler extends MultiFileCachingCompiler {
 
     this.processDiagnostics(file, result.diagnostics);
 
+    // Moves a source map belonging to some package to
+    // the standard (in Meteor) packages directory.
+    let packageName = file.getPackageName();
+    if (packageName && result.sourceMap) {
+      let path = result.sourceMap.sources[0];
+      result.sourceMap.sources = ['packages/' + path];
+    }
+
+    let referencedPaths = [];
+    // Reference paths are not supported for packages
+    // for time being. 
+    if (!packageName) {
+      referencedPaths = result.referencedPaths;
+    }
+
     let compileResult = {
       type: 'ts',
       data: result.data,
@@ -99,7 +114,7 @@ class TsCachingCompiler extends MultiFileCachingCompiler {
 
     return {
       compileResult: compileResult,
-      referencedImportPaths: result.referencedPaths
+      referencedImportPaths: referencedPaths
     }
   }
 

@@ -47,6 +47,15 @@ TsBasicCompiler = class TsBasicCompiler {
     return null;
   }
 
+  isRunCommand() {
+    var auxCommands = {'test-packages': 1, 'publish': 1};
+    if(process.argv.length > 2) {
+      var command = process.argv[2];
+      return !auxCommands[command];
+    }
+    return true;
+  }
+
   processDiagnostics(file, diagnostics) {
     diagnostics.syntactic.forEach(diagnostic => {
       file.error({
