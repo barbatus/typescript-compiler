@@ -5,7 +5,7 @@ Package exposes two TypeScript compilers: one basic compiler `TsCompiler` and on
 [This](https://github.com/barbatus/typescript) TypeScript package is used as a TypeScript provider.
 
 ## Getting Started
-Register a TS plugin with one of two provided compilers as follows: 
+Register new Meteor plugin and add inside one of two provided compilers as follows: 
 ````ts
 Plugin.registerCompiler({
   extensions: ['ts'],
