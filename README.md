@@ -5,7 +5,7 @@ Package exposes two TypeScript compilers: one basic compiler `TsCompiler` and on
 [This](https://github.com/barbatus/typescript) TypeScript package is used as a TypeScript provider.
 
 ## Getting Started
-Register new Meteor plugin in your new compiler package:
+Add new package (into the packages folder) and register new Meteor plugin there:
 ````js
 Package.registerBuildPlugin({
   name: 'TSBuilder',
@@ -25,7 +25,8 @@ Plugin.registerCompiler({
   extensions: ['ts'],
 }, () => new TsCachingCompiler());
 ````
-Please, check out demo app for more information. 
+
+Please, check out how everything works in the demo app.
 
 ## Compilers
 ### TsCompiler
