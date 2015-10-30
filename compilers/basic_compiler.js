@@ -9,7 +9,7 @@ TsBasicCompiler = class TsBasicCompiler {
   }
 
   init() {
-    this._customConfig = this._readConfig();
+    var customConfig = this._readConfig();
 
     this._defaultConfig = {
       module : ts.ModuleKind.System,
@@ -26,11 +26,13 @@ TsBasicCompiler = class TsBasicCompiler {
       // the typings folder.
       includePackageTypings: true
     };
+
+    this._tsconfig = _.extend({},
+      this._defaultConfig, customConfig);
   }
 
   get tsconfig() {
-    return _.extend({},
-      this._defaultConfig, this._customConfig);
+    return this._tsconfig;
   }
 
   _readConfig() {
@@ -39,12 +41,44 @@ TsBasicCompiler = class TsBasicCompiler {
       try {
         let tsconfig = JSON.parse(
           fs.readFileSync(tsconfigFs, 'utf8'));
-        return tsconfig;
+        return this._convert(tsconfig);
       } catch(err) {
         throw new Error('Format of the tsconfig is invalid');
       }
     }
     return null;
+  }
+
+  // Converts to the original format.
+  _convert(tsconfig) {
+    if (tsconfig.module) {
+      switch (tsconfig.module) {
+        case 'commonjs':
+          tsconfig.module = ts.ModuleKind.CommonJS;
+          break;
+        case 'amd':
+          tsconfig.module = ts.ModuleKind.AMD;
+          break;
+        case 'umd':
+          tsconfig.module = ts.ModuleKind.UMD;
+          break;
+        case 'system':
+          tsconfig.module = ts.ModuleKind.System;
+          break;
+        case 'es6':
+          tsconfig.module = ts.ModuleKind.ES6;
+          break;
+        case 'es2015':
+          tsconfig.module = ts.ModuleKind.ES2015;
+          break;
+        case 'none':
+          tsconfig.module = ts.ModuleKind.None;
+          break;
+        default:
+          throw new Error('[TypeScript Compiler]: uknown module option');
+      }
+    }
+    return tsconfig;
   }
 
   isRunCommand() {
