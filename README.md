@@ -50,8 +50,9 @@ When `alwaysThrow` is set, the compiler will always throw exceptions whenever sy
 
 ## Compilation Speed-up
 `noResolve` is designated to turn on/off module resolution process. During that process TypeScript checks availability of each module and verify that API usage is correct as well, which can be quite time assuming especially
-for big apps because each imported module's file is being read and parsed. Therefor you might consider turning it off during intensive period of the app development while Meteor is running at the same time. TypeScript will skip resolving each module but will continue cursing on syntactic errors.
+for big apps because each imported module's file is being read and parsed.
 
+Therefor, you might consider turning it off during intensive development when Meteor is running and changes applied just-in-time. TypeScript will skip resolving each module but will continue cursing on syntactic errors.
 From time to time you can switch `noResolve` back to false with the `useCache` set to false and re-start Meteor.
 You'll see all mistakes (if any) you have made including missing modules errors or incorrect API usage etc.
 
