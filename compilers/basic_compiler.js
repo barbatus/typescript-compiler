@@ -18,7 +18,7 @@ TsBasicCompiler = class TsBasicCompiler {
       // By default TS will resolve all modules.
       noResolve: false,
       diagnostics: true,
-      useCash: true,
+      useCashe: true,
       // Will always emit class metadata,
       // especially useful in Angular2
       emitDecoratorMetadata: true,
