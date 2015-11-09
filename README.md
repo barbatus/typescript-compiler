@@ -49,9 +49,11 @@ When `alwaysThrow` is set, the compiler will always throw exceptions whenever sy
 `useCache` simple says compiler to turn on/off caching results.
 
 ## Compilation Speed-up
-`noResolve` configuration option is responsible for module resolution process same as the original option is designated for. One of the reason to have it is that module resolution can greately slow down the compilation speed. Taking this into account, one can consider switching it on, i.e. `noResolve: true`, during intensive period of the app development and having Meteor running at the same time. TypeScript will skip resolving each module while continue cursing on syntactic errors. This can greately increase speed of the Meteor re-start on each file change.
+`noResolve` is designated to turn on/off module resolution process. During that process TypeScript checks availability of each module and verify that API usage is correct as well, which can be quite time assuming especially
+for big apps because each imported module's file is being read and parsed. Therefor you might consider turning it off during intensive period of the app development while Meteor is running at the same time. TypeScript will skip resolving each module but will continue cursing on syntactic errors.
 
-From time to time you can switch `noResolve` back to false with the `useCache` set to false and re-start Meteor. Having done this, you'll see all possible mistakes you could have made including missing modules errors or incorrect API usage etc. You can treat it as the way compilation process goes with the non-script languages like Java etc. Usually you make changes first there, then you compile the code to check if there is any mistakes.
+From time to time you can switch `noResolve` back to false with the `useCache` set to false and re-start Meteor.
+You'll see all mistakes (if any) you have made including missing modules errors or incorrect API usage etc.
 
 ## Example of usage
 Please, check Angular2's demo called Socially [here](https://github.com/Urigo/Meteor-Angular2/tree/master/examples/parties). It's built fully in TypeScript and uses `.tsconfig` as well.
