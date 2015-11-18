@@ -1,6 +1,6 @@
 Package.describe({
   name: 'barbatus:ts-compilers',
-  version: '0.1.8',
+  version: '0.1.8_1',
   summary: 'TypeScript Compilers for Meteor',
   git: 'https://github.com/barbatus/ts-compilers',
   documentation: 'README.md'
@@ -22,7 +22,7 @@ Package.onUse(function(api) {
     'ecmascript@0.1.4',
     'check@1.0.5',
     'underscore@1.0.4',
-    'barbatus:typescript@0.1.3'
+    'barbatus:typescript@0.1.3_1'
   ], server);
 
   api.addFiles([
@@ -37,5 +37,5 @@ Package.onUse(function(api) {
 
 Package.onTest(function(api) {
   api.use('tinytest');
-  api.use('barbatus:typescript');
+  api.use('barbatus:ts-compilers');
 });
