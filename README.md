@@ -48,7 +48,7 @@ Some of the TypeScript options are preset to be always turned on or off accordin
 
 A couple of additional options have been added: `alwaysThrow` and `useCache`.
 
-When `alwaysThrow` is set, the compiler will always throw exceptions whenever syntactic or symantic error occurs. Otherwise, it throws by default only on syntactic errors, semantic ones (like module resolution errors, unknown variables etc) are just logged in the terminal.
+When `alwaysThrow` is set, the compiler will always throw exceptions whenever syntactic or symantic error occurs. Otherwise, it throws by default only on syntactic errors, semantic ones (like module resolution errors, unknown variables etc) are just logged out in the terminal.
 
 `useCache` simple says compiler to turn on/off caching results.
 
