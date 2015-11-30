@@ -30,7 +30,7 @@ Please, check out how everything works in the demo app.
 
 ## Compilers
 ### TsBatchCompiler
-Compiles all passed `.ts`-files at once using internally `[TypeScript.transpileFiles](https://github.com/barbatus/typescript/blob/master/typescript.js#L87)`.
+Compiles all passed `.ts`-files at once using internally [`TypeScript.transpileFiles`](https://github.com/barbatus/typescript/blob/master/typescript.js#L87).
 
 TypeScript can potentially transpile all files together a bit more effiently using internal cache.
 
