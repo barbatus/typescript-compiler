@@ -30,19 +30,19 @@ Please, check out how everything works in the demo app.
 
 ## Compilers
 ### TsBatchCompiler
-Compiles all passed `.ts`-files at once using internally [`TypeScript.transpileFiles`](https://github.com/barbatus/typescript/blob/master/typescript.js#L87).
+Compiles all passed `.ts`-files at once using [`TypeScript.transpileFiles`](https://github.com/barbatus/typescript/blob/master/typescript.js#L87) method internally.
 
 TypeScript can potentially transpile all files together a bit more effiently using internal cache.
 
 ### TsCachingCompiler
-Extends Meteor's [`MultiFileCachingCompiler`](https://atmospherejs.com/meteor/caching-compiler) and compiles one file content at a time using this method [`TypeScript.transpile`](https://github.com/barbatus/typescript/blob/master/typescript.js#L96) internally.
+Extends Meteor's [`MultiFileCachingCompiler`](https://atmospherejs.com/meteor/caching-compiler) and compiles one file content at a time using [`TypeScript.transpile`](https://github.com/barbatus/typescript/blob/master/typescript.js#L96) internally.
 
 ### TsCompiler
 Main compiler that wraps two above compilers and use a particular one at a moment depending on the confiration provided.
 Currently, if `useCache` is set then `TsCachingCompiler` is used, otherwise - `TsBatchCompiler`.
 
 ## TypeScript Config
-Compilers can be configured via `.tsconfig` in the app root folder. Format of the `.tsconfig` follows the `compilerOptions` part with the same options as you can fine in the standard `.tsconfig` file [here](https://github.com/Microsoft/TypeScript/wiki/tsconfig.json); `files` part is omitted.
+Compilers can be configured via `.tsconfig` in the app root folder. `compilerOptions` part of the config, with the same options as you can fine in the standard `.tsconfig` file [here](https://github.com/Microsoft/TypeScript/wiki/tsconfig.json), is used to configure TypeScript compilation. If you omit `compilerOptions` then whole `.tsconfig` is treated as `compilerOptions`; the `files` part is not used.
 
 Some of the TypeScript options are preset to be always turned on or off according to details of the Meteor environment. You can read about exceptions [here](https://github.com/barbatus/typescript).
 
