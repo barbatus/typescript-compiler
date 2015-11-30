@@ -18,7 +18,7 @@ TsBasicCompiler = class TsBasicCompiler {
       // By default TS will resolve all modules.
       noResolve: false,
       diagnostics: true,
-      useCashe: true,
+      useCache: true,
       // Will always emit class metadata,
       // especially useful in Angular2
       emitDecoratorMetadata: true,
@@ -41,7 +41,11 @@ TsBasicCompiler = class TsBasicCompiler {
       try {
         let tsconfig = JSON.parse(
           fs.readFileSync(tsconfigFs, 'utf8'));
-        return this._convert(tsconfig);
+        // Support original config structure.
+        if (tsconfig.compilerOptions) {
+          tsconfig = tsconfig.compilerOptions;
+        }
+        return this._convertOriginal(tsconfig);
       } catch(err) {
         throw new Error('Format of the tsconfig is invalid');
       }
@@ -50,7 +54,7 @@ TsBasicCompiler = class TsBasicCompiler {
   }
 
   // Converts to the original format.
-  _convert(tsconfig) {
+  _convertOriginal(tsconfig) {
     if (tsconfig.module) {
       switch (tsconfig.module) {
         case 'commonjs':
