@@ -1,6 +1,6 @@
 ## TypeScript compilers for Meteor.
 
-Package exposes two TypeScript compilers: one basic compiler `TsCompiler` and one caching compiler `TsCachingCompiler` to be used in a Meteor compiler plugin.
+Package exposes three TypeScript compilers: `TsBatchCompiler`, `TsCachingCompiler` and `TsCompiler` to be used in a Meteor compiler plugin.
 
 [This](https://github.com/barbatus/typescript) TypeScript package is used as a TypeScript provider.
 
@@ -29,13 +29,17 @@ Plugin.registerCompiler({
 Please, check out how everything works in the demo app.
 
 ## Compilers
-### TsCompiler
-Compilales all passed `.ts`-files at once using internally `TypeScript.transpileFiles`.
+### TsBatchCompiler
+Compiles all passed `.ts`-files at once using internally `[TypeScript.transpileFiles](https://github.com/barbatus/typescript/blob/master/typescript.js#L87)`.
 
-One of its potential benefits is faster compilation speed on the initial Meteor run. Given that all files are provided to the TypeScript transpiler in a batch, TypeScript can transpile them more effiently using internal cache.
+TypeScript can potentially transpile all files together a bit more effiently using internal cache.
 
 ### TsCachingCompiler
-Extends Meteor's [`MultiFileCachingCompiler`](https://atmospherejs.com/meteor/caching-compiler) and compiles one file content per time using this method [`TypeScript.transpile`](https://github.com/barbatus/typescript/blob/master/typescript.js#L96) internally.
+Extends Meteor's [`MultiFileCachingCompiler`](https://atmospherejs.com/meteor/caching-compiler) and compiles one file content at a time using this method [`TypeScript.transpile`](https://github.com/barbatus/typescript/blob/master/typescript.js#L96) internally.
+
+### TsCompiler
+Main compiler that wraps two above compilers and use a particular one at a moment depending on the confiration provided.
+Currently, if `useCache` is set then `TsCachingCompiler` is used, otherwise - `TsBatchCompiler`.
 
 ## TypeScript Config
 Compilers can be configured via `.tsconfig` in the app root folder. Format of the `.tsconfig` follows the `compilerOptions` part with the same options as you can fine in the standard `.tsconfig` file [here](https://github.com/Microsoft/TypeScript/wiki/tsconfig.json); `files` part is omitted.
