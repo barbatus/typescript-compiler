@@ -2,25 +2,17 @@
 TsCompiler = class TsCompiler extends TsBasicCompiler  {
   constructor() {
     super();
+
+    this._cachingCompiler = new TsCachingCompiler(this.tsconfig);
+    this._batchCompiler = new TsBatchCompiler(this.tsconfig);
   }
 
   processFilesForTarget(files) {
-    let dFiles = files.filter(file => this.isDeclarationFile(file));
-    dFiles.forEach(file => file.addAsset({
-      data: file.getContentsAsString(),
-      path: file.getPathInPackage()
-    }));
+    if (this.tsconfig.useCache) {
+      this._cachingCompiler.processFilesForTarget(files);
+      return;
+    }
 
-    let tsFiles = files.filter(file => !this.isDeclarationFile(file));
-    TypeScript.transpileFiles(tsFiles, {
-      ...this.tsconfig,
-      filePath: file => file.getPathInPackage(),
-      moduleName: file => this.getAbsoluteImportPath(file, true)
-    }, (file, referencedPaths, diagnostics, result) => {
-
-      this.processDiagnostics(file, diagnostics);
-
-      file.addJavaScript(result);
-    });
+    this._batchCompiler.processFilesForTarget(files);
   }
 }

@@ -1,15 +1,30 @@
 
-var path = Plugin.path;
-var fs = Plugin.fs;
-var ts = Npm.require('typescript');
+const path = Plugin.path;
+const fs = Plugin.fs;
+const ts = Npm.require('typescript');
 
 TsBasicCompiler = class TsBasicCompiler {
-  constructor() {
-    this.init();
+  constructor(tsconfig) {
+    this.init(tsconfig);
   }
 
-  init() {
-    var customConfig = this._readConfig();
+  init(tsconfig) {
+    // Installed typings map.
+    this._typingsMap = new Map();
+
+    this._tsconfig = tsconfig;
+
+    if (!tsconfig) {
+      this._initConfig();
+    }
+  }
+
+  get tsconfig() {
+    return this._tsconfig;
+  }
+
+  _initConfig() {
+    let customConfig = this._readConfig();
 
     this._defaultConfig = {
       module : ts.ModuleKind.System,
@@ -29,10 +44,6 @@ TsBasicCompiler = class TsBasicCompiler {
 
     this._tsconfig = _.extend({},
       this._defaultConfig, customConfig);
-  }
-
-  get tsconfig() {
-    return this._tsconfig;
   }
 
   _readConfig() {
@@ -94,6 +105,44 @@ TsBasicCompiler = class TsBasicCompiler {
     return true;
   }
 
+  processTypings(files) {
+    let dtFiles = files.filter(file => {
+      return this.isDeclarationFile(file) &&
+        this.isPackageFile(file) &&
+          !this._typingsMap.get(path);
+    });
+    let missingFiles = [];
+    for (let file of dtFiles) {
+      let path = file.getPathInPackage();
+      // Resolve typings file relatively the the current app folder.
+      if (!fs.existsSync(path)) {
+        missingFiles.push(file);
+      }
+    }
+    if (missingFiles.length) {
+      missingFiles.forEach(file => {
+        this._createTypings(file);
+        this._typingsMap.set(
+          file.getPathInPackage());
+      });
+      console.log(chalk.green('***** New typings have been added *****'));
+      missingFiles.forEach(file => {
+        console.log(chalk.green(file.getPathInPackage()));
+      });
+      console.log(chalk.green('***** Please re-start your app *****'));
+      process.exit(0);
+    }
+  }
+
+  _createTypings(file) {
+    let filePath = file.getPathInPackage();
+    let dirPath = ts.getDirectoryPath(filePath);
+    if (!fs.existsSync(dirPath)) {
+      mkdirp.sync(Plugin.convertToOSPath(dirPath));
+    }
+    fs.writeFileSync(filePath, file.getContentsAsString());
+  }
+
   processDiagnostics(file, diagnostics) {
     diagnostics.syntactic.forEach(diagnostic => {
       file.error({
@@ -106,9 +155,9 @@ TsBasicCompiler = class TsBasicCompiler {
       });
     });
 
-    // Disables package diagnostics for time being.
+    // Disables package diagnostics if the devMode is turned off.
     let pkgName = file.getPackageName();
-    if (pkgName) return;
+    if (!this.tsconfig.pkgMode && pkgName) return;
 
     if (this.tsconfig.alwaysThrow) {
       diagnostics.semantic.forEach(diagnostic => {
@@ -130,6 +179,10 @@ TsBasicCompiler = class TsBasicCompiler {
   isDeclarationFile(file) {
     return TypeScript.isDeclarationFile(
       file.getBasename());
+  }
+
+  isPackageFile(file) {
+    return !!file.getPackageName();
   }
 
   getAbsoluteImportPath(file, noExtension) {

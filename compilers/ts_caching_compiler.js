@@ -1,24 +1,23 @@
 
-var path = Plugin.path;
-var fs = Plugin.fs;
-var ts = Npm.require('typescript');
-var mkdirp = Npm.require('mkdirp');
-var chalk = Npm.require('chalk');
+const path = Plugin.path;
+const fs = Plugin.fs;
+const ts = Npm.require('typescript');
+const mkdirp = Npm.require('mkdirp');
+const chalk = Npm.require('chalk');
 
 TsCachingCompiler =
 class TsCachingCompiler extends MultiFileCachingCompiler {
-  constructor() {
+  constructor(tsconfig) {
     super({
       compilerName: 'ts-caching-compiler',
       defaultCacheSize: 1024 * 1024 * 10
     });
 
-    this.init();
+    this.init(tsconfig);
   }
 
   getCacheKey(file) {
-    return this.tsconfig.useCache ?
-      file.getSourceHash() : Date.now();
+    return file.getSourceHash();
   }
 
   compileResultSize(result) {
@@ -27,48 +26,23 @@ class TsCachingCompiler extends MultiFileCachingCompiler {
 
   processFilesForTarget(files) {
     if (this.tsconfig.includePackageTypings) {
-      this._processTypings(files);
+      this.processTypings(files);
     }
 
+    // Filters package typings.
+    // Other files should be processed.
     files = files.filter(file => {
-      return !this.isDeclarationFile(file) ||
-        !file.getPackageName();
+      return !(this.isDeclarationFile(file) &&
+        file.getPackageName());
     });
     super.processFilesForTarget(files);
   }
 
-  _processTypings(files) {
-    let dtFiles = files.filter(file => {
-      return this.isDeclarationFile(file) &&
-        !!file.getPackageName();
-    });
-    let absent = false;
-    for (let file of dtFiles) {
-      if (!fs.existsSync(file.getPathInPackage())) {
-        absent = true;
-        break;
-      }
-    }
-    if (absent) {
-      dtFiles.forEach(file => {
-        this._createTypings(file);
-      });
-      console.log(chalk.green('***** New TypeScript typings have been created *****'));
-      console.log(chalk.green('***** Please re-start your app *****'));
-      process.exit(0);
-    }
-  }
-
-  _createTypings(file) {
-    let filePath = file.getPathInPackage();
-    let dirPath = ts.getDirectoryPath(filePath);
-    if (!fs.existsSync(dirPath)) {
-      mkdirp.sync(Plugin.convertToOSPath(dirPath));
-    }
-    fs.writeFileSync(filePath, file.getContentsAsString());
-  }
-
   compileOneFile(file, allFiles) {
+    // We don't compile typings themselves,
+    // only make compiler to watch them
+    // and then recompiles dependent .ts-file
+    // when appropriate custom typings are changed.
     if (this.isDeclarationFile(file)) {
       let compileResult = {
         type: 'd',
@@ -83,10 +57,10 @@ class TsCachingCompiler extends MultiFileCachingCompiler {
     }
 
     let result = TypeScript.transpile(file.getContentsAsString(), {
-      ...this.tsconfig,
-      filePath: file.getPathInPackage(),
-      moduleName: this.getAbsoluteImportPath(file, true)
-    });
+        ...this.tsconfig,
+        filePath: file.getPathInPackage(),
+        moduleName: this.getAbsoluteImportPath(file, true)
+      });
 
     this.processDiagnostics(file, result.diagnostics);
 
