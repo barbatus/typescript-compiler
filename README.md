@@ -2,7 +2,7 @@
 
 Package exposes three TypeScript compilers: `TsBatchCompiler`, `TsCachingCompiler` and `TsCompiler` to be used in a Meteor compiler plugin.
 
-[This](https://github.com/barbatus/typescript) TypeScript package is used as a TypeScript provider.
+TypeScript is provided by this [package](https://github.com/barbatus/typescript), which is a wrapper package over the TypeScript NPM with API devised for the Meteor environment.
 
 ## Getting Started
 Add new package (into the packages folder) and register new Meteor plugin there:
@@ -36,6 +36,10 @@ TypeScript can potentially transpile all files together a bit more effiently usi
 
 ### TsCachingCompiler
 Extends Meteor's [`MultiFileCachingCompiler`](https://atmospherejs.com/meteor/caching-compiler) and compiles one file content at a time using [`TypeScript.transpile`](https://github.com/barbatus/typescript/blob/master/typescript.js#L96) internally.
+
+This compiler smartely watches, not only for the .ts-files changes, but also for the declaration files as well.
+So, if a declaration file has been changed, all dependant .ts-files will be re-compiled. Hence, it makes sense to 
+keep custom declaration files separated logically into smaller pieces.
 
 ### TsCompiler
 Main compiler that wraps two above compilers and use a particular one at a moment depending on the configuration provided.
