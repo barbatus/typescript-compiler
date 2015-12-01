@@ -38,7 +38,7 @@ TypeScript can potentially transpile all files together a bit more effiently usi
 Extends Meteor's [`MultiFileCachingCompiler`](https://atmospherejs.com/meteor/caching-compiler) and compiles one file content at a time using [`TypeScript.transpile`](https://github.com/barbatus/typescript/blob/master/typescript.js#L96) internally.
 
 ### TsCompiler
-Main compiler that wraps two above compilers and use a particular one at a moment depending on the confiration provided.
+Main compiler that wraps two above compilers and use a particular one at a moment depending on the configuration provided.
 Currently, if `useCache` is set then `TsCachingCompiler` is used, otherwise - `TsBatchCompiler`.
 
 ## TypeScript Config
