@@ -56,6 +56,24 @@ When `alwaysThrow` is set, the compiler will always throw exceptions whenever sy
 
 `useCache` simple says compiler to turn on/off caching results.
 
+## Package Development
+
+To switch diagnostics on for the packages, you'll need to specify `pkgMode: true` in the config.
+Unfortunately, package can't compile package files relatively to the package folder, which require you to specify 
+full file paths in the typings references if you want to avoid errors in the terminal. Though, I plan to add this feature (relative compilation) in the future versions.
+
+Another feature, that one might consider useful, is an installation of the declaration files.
+If you want to add a specific declation file with API provided by your package to the user app, just
+add a `d.ts`-file in the package.js:
+
+````js
+api.addFiles([
+    'typings/path_to_file/foo.d.ts',
+  ], server);
+````
+
+The package will recognize and copy added file to the user app at the same path as it is located in your package, i.e. `typings/path_to_file`.
+
 ## Compilation Speed-up
 `noResolve` is designated to turn on/off module resolution process. During that process TypeScript checks availability of each module and verify that API usage is correct as well, which can be quite time assuming especially
 for big apps because each imported module's file is being read and parsed.
