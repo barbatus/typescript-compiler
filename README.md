@@ -59,7 +59,7 @@ When `alwaysThrow` is set, the compiler will always throw exceptions whenever sy
 ## Package Development
 
 To switch diagnostics on for the packages, you'll need to specify `pkgMode: true` in the config.
-Unfortunately, package can't compile package files relatively to the package folder, which require you to specify 
+Unfortunately, it can't compile package files relatively to the package folder, which require you to specify 
 full file paths in the typings references if you want to avoid errors in the terminal. Though, I plan to add this feature (relative compilation) in the future versions.
 
 Another feature, that one might consider useful, is an installation of the declaration files.
