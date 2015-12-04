@@ -2,6 +2,7 @@
 const path = Plugin.path;
 const fs = Plugin.fs;
 const ts = Npm.require('typescript');
+const mkdirp = Npm.require('mkdirp');
 const chalk = Npm.require('chalk');
 
 TsBasicCompiler = class TsBasicCompiler {
