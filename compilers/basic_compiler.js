@@ -2,6 +2,7 @@
 const path = Plugin.path;
 const fs = Plugin.fs;
 const ts = Npm.require('typescript');
+const chalk = Npm.require('chalk');
 
 TsBasicCompiler = class TsBasicCompiler {
   constructor(tsconfig) {
@@ -109,12 +110,12 @@ TsBasicCompiler = class TsBasicCompiler {
     let dtFiles = files.filter(file => {
       return this.isDeclarationFile(file) &&
         this.isPackageFile(file) &&
-          !this._typingsMap.get(path);
+          !this._typingsMap.has(path);
     });
     let missingFiles = [];
     for (let file of dtFiles) {
       let path = file.getPathInPackage();
-      // Resolve typings file relatively the the current app folder.
+      // Resolve typings file relatively the current app folder.
       if (!fs.existsSync(path)) {
         missingFiles.push(file);
       }
@@ -122,8 +123,7 @@ TsBasicCompiler = class TsBasicCompiler {
     if (missingFiles.length) {
       missingFiles.forEach(file => {
         this._createTypings(file);
-        this._typingsMap.set(
-          file.getPathInPackage());
+        this._typingsMap.set(file.getPathInPackage());
       });
       console.log(chalk.green('***** New typings have been added *****'));
       missingFiles.forEach(file => {
