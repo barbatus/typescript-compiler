@@ -5,9 +5,7 @@ TsBatchCompiler = class TsBatchCompiler extends TsBasicCompiler  {
   }
 
   processFilesForTarget(files) {
-    if (this.tsconfig.includePackageTypings) {
-      this.processTypings(files);
-    }
+    this.processFilesForTargetInternal(files);
 
     let tsFiles = files.filter(file => !this.isDeclarationFile(file));
 

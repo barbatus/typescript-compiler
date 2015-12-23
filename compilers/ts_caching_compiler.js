@@ -25,9 +25,7 @@ class TsCachingCompiler extends MultiFileCachingCompiler {
   }
 
   processFilesForTarget(files) {
-    if (this.tsconfig.includePackageTypings) {
-      this.processTypings(files);
-    }
+    this.processFilesForTargetInternal(files);
 
     // Filters package typings.
     // Other files should be processed.

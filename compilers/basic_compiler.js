@@ -198,4 +198,10 @@ TsBasicCompiler = class TsBasicCompiler {
     let path = file.getPathInPackage();
     return ts.removeFileExtension(path) + '.js';
   }
+
+  processFilesForTargetInternal(files) {
+    if (this.tsconfig.includePackageTypings && this.isRunCommand()) {
+      this.processTypings(files);
+    }
+  }
 };
