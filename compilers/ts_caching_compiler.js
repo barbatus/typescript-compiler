@@ -55,10 +55,11 @@ class TsCachingCompiler extends MultiFileCachingCompiler {
     }
 
     let result = TypeScript.transpile(file.getContentsAsString(), {
-        ...this.tsconfig,
-        filePath: file.getPathInPackage(),
-        moduleName: this.getAbsoluteImportPath(file, true)
-      });
+      compilerOptions: this.tsconfig.compilerOptions,
+      typings: this.tsconfig.typings,
+      filePath: file.getPathInPackage(),
+      moduleName: this.getAbsoluteImportPath(file, true)
+    });
 
     this.processDiagnostics(file, result.diagnostics);
 
@@ -76,6 +77,11 @@ class TsCachingCompiler extends MultiFileCachingCompiler {
     if (!packageName) {
       referencedPaths = result.referencedPaths;
     }
+
+    referencedPaths = referencedPaths.filter(refPath => {
+      let realPath = path.resolve(refPath);
+      return fs.existsSync(realPath);
+    });
 
     let compileResult = {
       type: 'ts',

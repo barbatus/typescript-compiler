@@ -11,6 +11,8 @@ TsBasicCompiler = class TsBasicCompiler {
   }
 
   init(tsconfig) {
+    this._typingsRegEx = /^typings\/.*\.d\.ts$/;
+
     // Installed typings map.
     this._typingsMap = new Map();
 
@@ -49,16 +51,23 @@ TsBasicCompiler = class TsBasicCompiler {
   }
 
   _readConfig() {
-    let tsconfigFs = path.resolve('./.tsconfig');
+    let tsconfigFs = path.resolve('./tsconfig.json');
     if (fs.existsSync(tsconfigFs)) {
       try {
         let tsconfig = JSON.parse(
           fs.readFileSync(tsconfigFs, 'utf8'));
-        // Support original config structure.
+
+        let parsedConfig = {};
         if (tsconfig.compilerOptions) {
-          tsconfig = tsconfig.compilerOptions;
+          parsedConfig.compilerOptions = this._convertOriginal(
+            tsconfig.compilerOptions);
         }
-        return this._convertOriginal(tsconfig);
+
+        if (tsconfig.files) {
+          parsedConfig.typings = this._parseTypings(tsconfig.files);
+        }
+
+        return parsedConfig;
       } catch(err) {
         throw new Error('Format of the tsconfig is invalid');
       }
@@ -66,36 +75,47 @@ TsBasicCompiler = class TsBasicCompiler {
     return null;
   }
 
-  // Converts to the original format.
-  _convertOriginal(tsconfig) {
-    if (tsconfig.module) {
-      switch (tsconfig.module) {
+  // Converts given compiler options to the original format.
+  _convertOriginal(compilerOptions) {
+    if (compilerOptions.module) {
+      switch (compilerOptions.module) {
         case 'commonjs':
-          tsconfig.module = ts.ModuleKind.CommonJS;
+          compilerOptions.module = ts.ModuleKind.CommonJS;
           break;
         case 'amd':
-          tsconfig.module = ts.ModuleKind.AMD;
+          compilerOptions.module = ts.ModuleKind.AMD;
           break;
         case 'umd':
-          tsconfig.module = ts.ModuleKind.UMD;
+          compilerOptions.module = ts.ModuleKind.UMD;
           break;
         case 'system':
-          tsconfig.module = ts.ModuleKind.System;
+          compilerOptions.module = ts.ModuleKind.System;
           break;
         case 'es6':
-          tsconfig.module = ts.ModuleKind.ES6;
+          compilerOptions.module = ts.ModuleKind.ES6;
           break;
         case 'es2015':
-          tsconfig.module = ts.ModuleKind.ES2015;
+          compilerOptions.module = ts.ModuleKind.ES2015;
           break;
         case 'none':
-          tsconfig.module = ts.ModuleKind.None;
+          compilerOptions.module = ts.ModuleKind.None;
           break;
         default:
           throw new Error('[TypeScript Compiler]: uknown module option');
       }
     }
-    return tsconfig;
+    return compilerOptions;
+  }
+
+  // Parses "files" property of the config
+  // sifting out everything except declaration files
+  // in the typings folder.
+  _parseTypings(files) {
+    check(files, Array);
+
+    return files.filter(file => {
+      return this._typingsRegEx.test(file);
+    });
   }
 
   isRunCommand() {
@@ -145,7 +165,7 @@ TsBasicCompiler = class TsBasicCompiler {
   }
 
   processDiagnostics(file, diagnostics) {
-    diagnostics.syntactic.forEach(diagnostic => {
+    diagnostics.forEachSyntactic(diagnostic => {
       file.error({
         message: diagnostic.message,
         // Path with package name prefix to 
@@ -161,7 +181,7 @@ TsBasicCompiler = class TsBasicCompiler {
     if (!this.tsconfig.pkgMode && pkgName) return;
 
     if (this.tsconfig.alwaysThrow) {
-      diagnostics.semantic.forEach(diagnostic => {
+      diagnostics.forEachSemantic(diagnostic => {
         file.error({
           message: diagnostic.message,
           sourcePath: this.getAbsoluteImportPath(file),
@@ -173,7 +193,8 @@ TsBasicCompiler = class TsBasicCompiler {
     }
 
     if (this.tsconfig.diagnostics) {
-      diagnostics.logSemantic();
+      diagnostics.forEachSemantic(diagnostic =>
+        console.log(chalk.yellow(diagnostic.formattedMsg)));
     }
   }
 
@@ -200,6 +221,8 @@ TsBasicCompiler = class TsBasicCompiler {
   }
 
   processFilesForTargetInternal(files) {
+    console.log('\n');
+
     if (this.tsconfig.includePackageTypings && this.isRunCommand()) {
       this.processTypings(files);
     }

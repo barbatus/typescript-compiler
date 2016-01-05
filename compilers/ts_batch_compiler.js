@@ -10,7 +10,8 @@ TsBatchCompiler = class TsBatchCompiler extends TsBasicCompiler  {
     let tsFiles = files.filter(file => !this.isDeclarationFile(file));
 
     TypeScript.transpileFiles(tsFiles, {
-      ...this.tsconfig,
+      compilerOptions: this.tsconfig.compilerOptions,
+      typings: this.tsconfig.typings,
       filePath: file => this.getAbsoluteImportPath(file),
       moduleName: file => this.getAbsoluteImportPath(file, true)
     }, (file, referencedPaths, diagnostics, result) => {

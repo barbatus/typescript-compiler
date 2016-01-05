@@ -8,11 +8,13 @@ TsCompiler = class TsCompiler extends TsBasicCompiler  {
   }
 
   processFilesForTarget(files) {
-    if (this.tsconfig.useCache) {
-      this._cachingCompiler.processFilesForTarget(files);
+    if (this.tsconfig.compilerOptions &&
+        _.isBoolean(this.tsconfig.compilerOptions.useCache) &&
+        this.tsconfig.compilerOptions.useCache === false) {
+      this._batchCompiler.processFilesForTarget(files);
       return;
     }
 
-    this._batchCompiler.processFilesForTarget(files);
+    this._cachingCompiler.processFilesForTarget(files);
   }
 }
