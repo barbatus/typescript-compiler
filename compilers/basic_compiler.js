@@ -28,9 +28,9 @@ TsBasicCompiler = class TsBasicCompiler {
   }
 
   _initConfig() {
-    let customConfig = this._readConfig();
+    let userConfig = this._readConfig();
 
-    this._defaultConfig = {
+    let defaultOptions = {
       module : ts.ModuleKind.System,
       target: ts.ScriptTarget.ES5,
       sourceMap: true,
@@ -46,8 +46,11 @@ TsBasicCompiler = class TsBasicCompiler {
       includePackageTypings: true
     };
 
-    this._tsconfig = _.extend({},
-      this._defaultConfig, customConfig);
+    this._tsconfig = {
+      compilerOptions: _.extend(defaultOptions,
+        userConfig.compilerOptions),
+      typings: userConfig.typings
+    }
   }
 
   _readConfig() {
@@ -57,12 +60,24 @@ TsBasicCompiler = class TsBasicCompiler {
         let tsconfig = JSON.parse(
           fs.readFileSync(tsconfigFs, 'utf8'));
 
-        let parsedConfig = {};
+        let parsedConfig = {
+          compilerOptions: {}
+        };
+        // Parse standard TypeScript options.
         if (tsconfig.compilerOptions) {
           parsedConfig.compilerOptions = this._convertOriginal(
             tsconfig.compilerOptions);
         }
 
+        // Parse additional options, used by this package.
+        if (tsconfig.meteorCompilerOptions) {
+          parsedConfig.compilerOptions = {
+            ...parsedConfig.compilerOptions,
+            ...tsconfig.meteorCompilerOptions
+          };
+        }
+
+        parsedConfig.typings = [];
         if (tsconfig.files) {
           parsedConfig.typings = this._parseTypings(tsconfig.files);
         }
