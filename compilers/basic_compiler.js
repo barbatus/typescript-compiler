@@ -28,8 +28,6 @@ TsBasicCompiler = class TsBasicCompiler {
   }
 
   _initConfig() {
-    let userConfig = this._readConfig();
-
     let defaultOptions = {
       module : ts.ModuleKind.System,
       target: ts.ScriptTarget.ES5,
@@ -46,10 +44,17 @@ TsBasicCompiler = class TsBasicCompiler {
       includePackageTypings: true
     };
 
-    this._tsconfig = {
-      compilerOptions: _.extend(defaultOptions,
-        userConfig.compilerOptions),
-      typings: userConfig.typings
+    let userConfig = this._readConfig();
+    if (userConfig) {
+      this._tsconfig = {
+        compilerOptions: _.extend(defaultOptions,
+          userConfig.compilerOptions),
+        typings: userConfig.typings
+      }
+    } else {
+      this._tsconfig = {
+        compilerOptions: defaultOptions
+      }
     }
   }
 
