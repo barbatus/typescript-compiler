@@ -89,7 +89,7 @@ TsBasicCompiler = class TsBasicCompiler {
 
         return parsedConfig;
       } catch(err) {
-        throw new Error('Format of the tsconfig is invalid');
+        throw new Error(chalk.red(`Format of the tsconfig is invalid ${err}`));
       }
     }
     return null;
@@ -97,49 +97,18 @@ TsBasicCompiler = class TsBasicCompiler {
 
   // Converts given compiler options to the original format.
   _convertOriginal(compilerOptions) {
-    if (compilerOptions.module) {
-      switch (compilerOptions.module) {
-        case 'commonjs':
-          compilerOptions.module = ts.ModuleKind.CommonJS;
-          break;
-        case 'amd':
-          compilerOptions.module = ts.ModuleKind.AMD;
-          break;
-        case 'umd':
-          compilerOptions.module = ts.ModuleKind.UMD;
-          break;
-        case 'system':
-          compilerOptions.module = ts.ModuleKind.System;
-          break;
-        case 'es6':
-          compilerOptions.module = ts.ModuleKind.ES6;
-          break;
-        case 'es2015':
-          compilerOptions.module = ts.ModuleKind.ES2015;
-          break;
-        case 'none':
-          compilerOptions.module = ts.ModuleKind.None;
-          break;
-        default:
-          throw new Error('[TypeScript Compiler]: uknown module option');
-      }
+    let options = {
+      compilerOptions: compilerOptions,
+      files: []
+    };
+
+    let result = ts.parseJsonConfigFileContent(options);
+
+    if (result.errors && result.errors.length) {
+      throw new Error(result.errors[0].messageText);
     }
 
-    if (compilerOptions.target) {
-      switch (compilerOptions.target) {
-        case 'es5':
-          compilerOptions.target = ts.ScriptTarget.ES5;
-          break;
-        case 'es6':
-          compilerOptions.target = ts.ScriptTarget.ES6;
-          break;
-        default:
-          compilerOptions.target = ts.ScriptTarget.ES3;
-          break;
-      }
-    }
-
-    return compilerOptions;
+    return result.options;
   }
 
   // Parses "files" property of the config

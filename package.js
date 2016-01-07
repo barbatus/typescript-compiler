@@ -1,13 +1,13 @@
 Package.describe({
   name: 'barbatus:ts-compilers',
-  version: '0.2.3',
+  version: '0.2.4',
   summary: 'TypeScript Compilers for Meteor',
   git: 'https://github.com/barbatus/ts-compilers',
   documentation: 'README.md'
 });
 
 Npm.depends({
-  'typescript': '1.6.2',
+  'typescript': '1.7.5',
   'mkdirp': '0.5.0',
   'chalk': '1.1.1'
 });
@@ -22,7 +22,7 @@ Package.onUse(function(api) {
     'ecmascript@0.1.4',
     'check@1.0.5',
     'underscore@1.0.4',
-    'barbatus:typescript@0.1.4_1'
+    'barbatus:typescript@0.1.5'
   ], server);
 
   api.addFiles([
