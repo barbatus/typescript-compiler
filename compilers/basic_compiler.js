@@ -16,19 +16,7 @@ TsBasicCompiler = class TsBasicCompiler {
     // Installed typings map.
     this._typingsMap = new Map();
 
-    this._tsconfig = tsconfig;
-
-    if (!tsconfig) {
-      this._initConfig();
-    }
-  }
-
-  get tsconfig() {
-    return this._tsconfig;
-  }
-
-  _initConfig() {
-    let defaultOptions = {
+    this._defaultOptions = {
       module : ts.ModuleKind.System,
       target: ts.ScriptTarget.ES5,
       sourceMap: true,
@@ -44,17 +32,34 @@ TsBasicCompiler = class TsBasicCompiler {
       includePackageTypings: true
     };
 
+    this._tsconfig = tsconfig;
+
+    if (!tsconfig) {
+      this._tsconfig = this._createConfig();
+    }
+  }
+
+  get tsconfig() {
+    return this._tsconfig;
+  }
+
+  get compilerOptions() {
+    return this._tsconfig && this._tsconfig.compilerOptions;
+  }
+
+  _createConfig() {
     let userConfig = this._readConfig();
+
     if (userConfig) {
-      this._tsconfig = {
-        compilerOptions: _.extend(defaultOptions,
+      return {
+        compilerOptions: _.extend(this._defaultOptions,
           userConfig.compilerOptions),
         typings: userConfig.typings
       }
-    } else {
-      this._tsconfig = {
-        compilerOptions: defaultOptions
-      }
+    }
+
+    return {
+      compilerOptions: this._defaultOptions
     }
   }
 
@@ -182,9 +187,9 @@ TsBasicCompiler = class TsBasicCompiler {
 
     // Disables package diagnostics if the devMode is turned off.
     let pkgName = file.getPackageName();
-    if (!this.tsconfig.pkgMode && pkgName) return;
+    if (!this.compilerOptions.pkgMode && pkgName) return;
 
-    if (this.tsconfig.alwaysThrow) {
+    if (this.compilerOptions.alwaysThrow) {
       diagnostics.forEachSemantic(diagnostic => {
         file.error({
           message: diagnostic.message,
@@ -196,7 +201,7 @@ TsBasicCompiler = class TsBasicCompiler {
       return;
     }
 
-    if (this.tsconfig.diagnostics) {
+    if (this.compilerOptions.diagnostics) {
       diagnostics.forEachSemantic(diagnostic =>
         console.log(chalk.yellow(diagnostic.formattedMsg)));
     }
@@ -227,7 +232,7 @@ TsBasicCompiler = class TsBasicCompiler {
   processFilesForTargetInternal(files) {
     console.log('\n');
 
-    if (this.tsconfig.includePackageTypings && this.isRunCommand()) {
+    if (this.compilerOptions.includePackageTypings && this.isRunCommand()) {
       this.processTypings(files);
     }
   }
