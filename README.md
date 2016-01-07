@@ -46,15 +46,34 @@ Main compiler that wraps two above compilers and use a particular one at a momen
 Currently, if `useCache` is set then `TsCachingCompiler` is used, otherwise - `TsBatchCompiler`.
 
 ## TypeScript Config
-Compilers can be configured via `.tsconfig` in the app root folder. `compilerOptions` part of the config, with the same options as you can fine in the standard `.tsconfig` file [here](https://github.com/Microsoft/TypeScript/wiki/tsconfig.json), is used to configure TypeScript compilation. If you omit `compilerOptions` then whole `.tsconfig` is treated as `compilerOptions`; the `files` part is not used.
+Compilers can be configured via [`tsconfig.json`](https://github.com/Microsoft/TypeScript/wiki/tsconfig.json) in the app root folder.
+The structure of the file is exactly the same as the original one: `compilerOptions` and `files`.
+
+`files` works only for the .d.ts-files in the _typings_ folder. These files are passed then to the TypeScript transpiler along with the TypeScript files, so you don't need to reference typigns directly.
 
 Some of the TypeScript options are preset to be always turned on or off according to details of the Meteor environment. You can read about exceptions [here](https://github.com/barbatus/typescript).
 
-A couple of additional options have been added: `alwaysThrow` and `useCache`.
+There have been added additional section `meteorCompilerOptions` for Meteor environmet needs.
+This sections accept two options: `alwaysThrow` and `useCache`.
 
 When `alwaysThrow` is set, the compiler will always throw exceptions whenever syntactic or symantic error occurs. Otherwise, it throws by default only on syntactic errors, semantic ones (like module resolution errors, unknown variables etc) are just logged out in the terminal.
 
 `useCache` simple says compiler to turn on/off caching results.
+
+An example of the correct _tsconfig.json_ might look like this:
+
+````
+{
+  "compilerOptions": {
+    "module": "system",
+    "target": "es5"
+  },
+  "meteorCompilerOptions": {
+    "alwaysThrow": true
+  },
+  "typings": ["typings/angular2.d.ts"]
+}
+````
 
 ## Package Development
 
