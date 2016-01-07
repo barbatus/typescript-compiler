@@ -124,6 +124,21 @@ TsBasicCompiler = class TsBasicCompiler {
           throw new Error('[TypeScript Compiler]: uknown module option');
       }
     }
+
+    if (compilerOptions.target) {
+      switch (compilerOptions.target) {
+        case 'es5':
+          compilerOptions.target = ts.ScriptTarget.ES5;
+          break;
+        case 'es6':
+          compilerOptions.target = ts.ScriptTarget.ES6;
+          break;
+        default:
+          compilerOptions.target = ts.ScriptTarget.ES3;
+          break;
+      }
+    }
+
     return compilerOptions;
   }
 
