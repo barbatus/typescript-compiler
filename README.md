@@ -102,4 +102,4 @@ From time to time you can switch `noResolve` back to false with the `useCache` s
 You'll see all mistakes (if any) you have made including missing modules errors or incorrect API usage etc.
 
 ## Example of usage
-Please, check Angular2's demo called Socially [here](https://github.com/Urigo/Meteor-Angular2/tree/master/examples/parties). It's built fully in TypeScript and uses `.tsconfig` as well.
+Please, check Angular2's demo called Socially [here](https://github.com/Urigo/Meteor-Angular2/tree/master/examples/parties). This  demo is built fully in TypeScript and uses `tsconfig.json` as well. Angular2-Meteor package itself bases on the compilers of this package.
