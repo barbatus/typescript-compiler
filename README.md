@@ -51,9 +51,9 @@ The structure of the file is exactly the same as the original one: `compilerOpti
 
 `files` works only for the .d.ts-files in the _typings_ folder. These files are passed then to the TypeScript transpiler along with the TypeScript files, so you don't need to reference typigns directly.
 
-Some of the TypeScript options are preset to be always turned on or off according to details of the Meteor environment. You can read about exceptions [here](https://github.com/barbatus/typescript).
+Some of the TypeScript options are preset to be always turned on or off according to details of the Meteor environment. You can read about exceptions [here](https://github.com/barbatus/typescript#compiler-options).
 
-There have been added additional section `meteorCompilerOptions` for Meteor environmet needs.
+There have been added additional section `meteorCompilerOptions` for Meteor environment needs.
 This sections accept two options: `alwaysThrow` and `useCache`.
 
 When `alwaysThrow` is set, the compiler will always throw exceptions whenever syntactic or symantic error occurs. Otherwise, it throws by default only on syntactic errors, semantic ones (like module resolution errors, unknown variables etc) are just logged out in the terminal.
