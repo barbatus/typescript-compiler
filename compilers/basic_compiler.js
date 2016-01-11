@@ -176,7 +176,7 @@ TsBasicCompiler = class TsBasicCompiler {
   processDiagnostics(file, diagnostics) {
     diagnostics.forEachSyntactic(diagnostic => {
       file.error({
-        message: diagnostic.message,
+        message: chalk.red(diagnostic.message),
         // Path with package name prefix to 
         // show package where this error happened.
         sourcePath: this.getAbsoluteImportPath(file),
@@ -192,7 +192,7 @@ TsBasicCompiler = class TsBasicCompiler {
     if (this.compilerOptions.alwaysThrow) {
       diagnostics.forEachSemantic(diagnostic => {
         file.error({
-          message: diagnostic.message,
+          message: chalk.red(diagnostic.message),
           sourcePath: this.getAbsoluteImportPath(file),
           line: diagnostic.line,
           column: diagnostic.column
@@ -230,8 +230,6 @@ TsBasicCompiler = class TsBasicCompiler {
   }
 
   processFilesForTargetInternal(files) {
-    console.log('\n');
-
     if (this.compilerOptions.includePackageTypings && this.isRunCommand()) {
       this.processTypings(files);
     }

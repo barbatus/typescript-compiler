@@ -1,6 +1,6 @@
 Package.describe({
   name: 'barbatus:ts-compilers',
-  version: '0.2.5',
+  version: '0.2.5_1',
   summary: 'TypeScript Compilers for Meteor',
   git: 'https://github.com/barbatus/ts-compilers',
   documentation: 'README.md'
