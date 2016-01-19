@@ -5,9 +5,7 @@ TsBatchCompiler = class TsBatchCompiler extends TsBasicCompiler  {
   }
 
   processFilesForTarget(files) {
-    this.processFilesForTargetInternal(files);
-
-    let tsFiles = files.filter(file => !this.isDeclarationFile(file));
+    let tsFiles = this.processFilesForTargetInternal(files);
 
     TypeScript.transpileFiles(tsFiles, {
       compilerOptions: this.tsconfig.compilerOptions,

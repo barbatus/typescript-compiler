@@ -32,11 +32,12 @@ TsBasicCompiler = class TsBasicCompiler {
       includePackageTypings: true
     };
 
-    this._tsconfig = tsconfig;
+    // Config hash.
+    this._cfgHash = null;
 
-    if (!tsconfig) {
-      this._tsconfig = this._createConfig();
-    }
+    this._tsconfig = tsconfig || {
+      compilerOptions: this._defaultOptions
+    };
   }
 
   get tsconfig() {
@@ -47,57 +48,46 @@ TsBasicCompiler = class TsBasicCompiler {
     return this._tsconfig && this._tsconfig.compilerOptions;
   }
 
-  _createConfig() {
-    let userConfig = this._readConfig();
-
-    if (userConfig) {
-      return {
-        compilerOptions: _.extend(this._defaultOptions,
-          userConfig.compilerOptions),
-        typings: userConfig.typings
-      }
-    }
+  _createConfig(cfgContent) {
+    let userConfig = this._parseConfig(cfgContent);
 
     return {
-      compilerOptions: this._defaultOptions
+      compilerOptions: _.extend(this._defaultOptions,
+        userConfig.compilerOptions),
+      typings: userConfig.typings
     }
   }
 
-  _readConfig() {
-    let tsconfigFs = path.resolve('./tsconfig.json');
-    if (fs.existsSync(tsconfigFs)) {
-      try {
-        let tsconfig = JSON.parse(
-          fs.readFileSync(tsconfigFs, 'utf8'));
+  _parseConfig(cfgContent) {
+    try {
+      let tsconfig = JSON.parse(cfgContent);
 
-        let parsedConfig = {
-          compilerOptions: {}
-        };
-        // Parse standard TypeScript options.
-        if (tsconfig.compilerOptions) {
-          parsedConfig.compilerOptions = this._convertOriginal(
-            tsconfig.compilerOptions);
-        }
-
-        // Parse additional options, used by this package.
-        if (tsconfig.meteorCompilerOptions) {
-          parsedConfig.compilerOptions = {
-            ...parsedConfig.compilerOptions,
-            ...tsconfig.meteorCompilerOptions
-          };
-        }
-
-        parsedConfig.typings = [];
-        if (tsconfig.files) {
-          parsedConfig.typings = this._parseTypings(tsconfig.files);
-        }
-
-        return parsedConfig;
-      } catch(err) {
-        throw new Error(chalk.red(`Format of the tsconfig is invalid ${err}`));
+      let parsedConfig = {
+        compilerOptions: {}
+      };
+      // Parse standard TypeScript options.
+      if (tsconfig.compilerOptions) {
+        parsedConfig.compilerOptions = this._convertOriginal(
+          tsconfig.compilerOptions);
       }
+
+      // Parse additional options, used by this package.
+      if (tsconfig.meteorCompilerOptions) {
+        parsedConfig.compilerOptions = {
+          ...parsedConfig.compilerOptions,
+          ...tsconfig.meteorCompilerOptions
+        };
+      }
+
+      parsedConfig.typings = [];
+      if (tsconfig.files) {
+        parsedConfig.typings = this._parseTypings(tsconfig.files);
+      }
+
+      return parsedConfig;
+    } catch(err) {
+      throw new Error(chalk.red(`Format of the tsconfig is invalid ${err}`));
     }
-    return null;
   }
 
   // Converts given compiler options to the original format.
@@ -127,13 +117,31 @@ TsBasicCompiler = class TsBasicCompiler {
     });
   }
 
-  isRunCommand() {
-    var auxCommands = {'test-packages': 1, 'publish': 1};
+  isDevRunCommand() {
+    var auxCommands = {
+      'test-packages': 1,
+      'publish': 1,
+      'build': 1
+    };
+
+    var len = process.argv.length;
     if(process.argv.length > 2) {
       var command = process.argv[2];
-      return !auxCommands[command];
+      if (auxCommands[command]) return false;
     }
-    return true;
+
+    return process.argv.indexOf('--production') == -1;
+  }
+
+  processConfig(files) {
+    let cfgFile = _.first(files.filter(file => this.isConfigFile(file)));
+    if (cfgFile) {
+      let cfgHash = cfgFile.getSourceHash();
+      if (cfgHash !== this._cfgHash) {
+        this._tsconfig = this._createConfig(cfgFile.getContentsAsString());
+        this._cfgHash = cfgHash;
+      }
+    }
   }
 
   processTypings(files) {
@@ -155,12 +163,14 @@ TsBasicCompiler = class TsBasicCompiler {
         this._createTypings(file);
         this._typingsMap.set(file.getPathInPackage());
       });
+
+      // Report about newly installed typings.
       console.log(chalk.green('***** New typings have been added *****'));
       missingFiles.forEach(file => {
         console.log(chalk.green(file.getPathInPackage()));
       });
-      console.log(chalk.green('***** Please re-start your app *****'));
-      process.exit(0);
+      console.log(chalk.green(
+        'Add typings in tsconfig.json or by references in files.'));
     }
   }
 
@@ -185,7 +195,7 @@ TsBasicCompiler = class TsBasicCompiler {
       });
     });
 
-    // Disables package diagnostics if the devMode is turned off.
+    // Disables package diagnostics if the pkgMode is turned off.
     let pkgName = file.getPackageName();
     if (!this.compilerOptions.pkgMode && pkgName) return;
 
@@ -212,6 +222,10 @@ TsBasicCompiler = class TsBasicCompiler {
       file.getBasename());
   }
 
+  isConfigFile(file) {
+    return file.getPathInPackage() === 'tsconfig.json';
+  }
+
   isPackageFile(file) {
     return !!file.getPackageName();
   }
@@ -230,8 +244,20 @@ TsBasicCompiler = class TsBasicCompiler {
   }
 
   processFilesForTargetInternal(files) {
-    if (this.compilerOptions.includePackageTypings && this.isRunCommand()) {
+    this.processConfig(files);
+
+    // Process typings from packages only when associated options
+    // set in the config (be default - true) and in development mode.
+    if (this.compilerOptions.includePackageTypings &&
+        this.isDevRunCommand()) {
       this.processTypings(files);
     }
+
+    // Filters out typings and tsconfig.
+    // Other files should be compiled.
+    let tsFiles = files.filter(file => 
+      !(this.isConfigFile(file) || this.isDeclarationFile(file)));
+
+    return tsFiles;
   }
 };

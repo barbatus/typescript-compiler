@@ -5,8 +5,7 @@ const ts = Npm.require('typescript');
 const mkdirp = Npm.require('mkdirp');
 const chalk = Npm.require('chalk');
 
-TsCachingCompiler =
-class TsCachingCompiler extends MultiFileCachingCompiler {
+TsCachingCompiler = class TsCachingCompiler extends MultiFileCachingCompiler {
   constructor(tsconfig) {
     super({
       compilerName: 'ts-caching-compiler',
@@ -25,15 +24,15 @@ class TsCachingCompiler extends MultiFileCachingCompiler {
   }
 
   processFilesForTarget(files) {
-    this.processFilesForTargetInternal(files);
+    let tsFiles = this.processFilesForTargetInternal(files);
 
-    // Filters package typings.
-    // Other files should be processed.
-    files = files.filter(file => {
-      return !(this.isDeclarationFile(file) &&
-        file.getPackageName());
+    // Takes typings of the app to process (see below).
+    let dtsFiles = files.filter(file => {
+      return this.isDeclarationFile(file) &&
+        file.getPackageName() == null;
     });
-    super.processFilesForTarget(files);
+
+    super.processFilesForTarget(tsFiles.concat(dtsFiles));
   }
 
   compileOneFile(file, allFiles) {
