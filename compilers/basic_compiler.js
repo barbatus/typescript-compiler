@@ -79,9 +79,12 @@ TsBasicCompiler = class TsBasicCompiler {
         };
       }
 
+      // Reads "files" property of the config.
+      // Filter out everything except declaration files
+      // in the "typings" folder.
       parsedConfig.typings = [];
       if (tsconfig.files) {
-        parsedConfig.typings = this._parseTypings(tsconfig.files);
+        parsedConfig.typings = this.filterTypings(tsconfig.files);
       }
 
       return parsedConfig;
@@ -106,14 +109,11 @@ TsBasicCompiler = class TsBasicCompiler {
     return result.options;
   }
 
-  // Parses "files" property of the config
-  // sifting out everything except declaration files
-  // in the typings folder.
-  _parseTypings(files) {
-    check(files, Array);
+  filterTypings(filePaths) {
+    check(filePaths, Array);
 
-    return files.filter(file => {
-      return this._typingsRegEx.test(file);
+    return filePaths.filter(filePath => {
+      return this._typingsRegEx.test(filePath);
     });
   }
 
@@ -137,6 +137,8 @@ TsBasicCompiler = class TsBasicCompiler {
     let cfgFile = _.first(files.filter(file => this.isConfigFile(file)));
     if (cfgFile) {
       let cfgHash = cfgFile.getSourceHash();
+      // If config has changed,
+      // create and apply new one. 
       if (cfgHash !== this._cfgHash) {
         this._tsconfig = this._createConfig(cfgFile.getContentsAsString());
         this._cfgHash = cfgHash;
@@ -144,38 +146,78 @@ TsBasicCompiler = class TsBasicCompiler {
     }
   }
 
+  // Gets standardized declaration file path, i.e.,
+  // path that contains package name inside.
+  // if package "foo" has a declaration file typings/foo.d.ts,
+  // then standardized path will be typings/foo/foo.d.ts.
+  _getStandardTypingsFilePath(file) {
+    let filePath = file.getPathInPackage();
+    let dirPath = ts.getDirectoryPath(ts.normalizePath(filePath));
+    let pkgName = file.getPackageName();
+    if (pkgName.indexOf(':') != -1) {
+      pkgName = pkgName.split(':')[1];
+    }
+    let pkgTest = new RegExp(`.*\/${pkgName}(\/.+|$)`);
+    if (pkgTest.test(dirPath) === false) {
+      let pkgDirPath = ts.combinePaths(dirPath, pkgName);
+      let fileName = ts.getBaseFileName(filePath);
+      filePath = ts.combinePaths(pkgDirPath, fileName);
+    }
+
+    return filePath;
+  }
+
+  // Copies declaration files from packages to apps.
+  // Allows only files from the "typings" folder in packages
+  // and copy them to the "typings" folder in apps as well.
   processTypings(files) {
     let dtFiles = files.filter(file => {
-      return this.isDeclarationFile(file) &&
-        this.isPackageFile(file) &&
-          !this._typingsMap.has(path);
+      // Check if it's a package declaration file.
+      let isPkgTypings = this.isDeclarationFile(file) &&
+        this.isPackageFile(file);
+
+      if (isPkgTypings) {
+        let path = file.getPathInPackage();
+        // Check if the file is in the "typings" folder.
+        if (!this._typingsRegEx.test(path)) {
+          console.log('Typings path ${path} doesn\'t start with "typings"');
+          return false;
+        }
+
+        // Check if it's not been processed.
+        return !this._typingsMap.has(path);
+      }
+
+      return false;
     });
+
     let missingFiles = [];
     for (let file of dtFiles) {
-      let path = file.getPathInPackage();
-      // Resolve typings file relatively the current app folder.
-      if (!fs.existsSync(path)) {
-        missingFiles.push(file);
+      let filePath = this._getStandardTypingsFilePath(file);
+
+      // Resolve typings file relatively to the current app folder.
+      if (!fs.existsSync(filePath)) {
+        missingFiles.push({ filePath, file });
       }
     }
+
     if (missingFiles.length) {
-      missingFiles.forEach(file => {
-        this._createTypings(file);
-        this._typingsMap.set(file.getPathInPackage());
+      missingFiles.forEach(({filePath, file}) => {
+        this._createTypings(filePath, file);
+        this._typingsMap.set(filePath);
       });
 
       // Report about newly installed typings.
       console.log(chalk.green('***** New typings have been added *****'));
-      missingFiles.forEach(file => {
-        console.log(chalk.green(file.getPathInPackage()));
+      missingFiles.forEach(({filePath, file}) => {
+        console.log(chalk.green(filePath));
       });
       console.log(chalk.green(
         'Add typings in tsconfig.json or by references in files.'));
     }
   }
 
-  _createTypings(file) {
-    let filePath = file.getPathInPackage();
+  _createTypings(filePath, file) {
     let dirPath = ts.getDirectoryPath(filePath);
     if (!fs.existsSync(dirPath)) {
       mkdirp.sync(Plugin.convertToOSPath(dirPath));
@@ -218,8 +260,7 @@ TsBasicCompiler = class TsBasicCompiler {
   }
 
   isDeclarationFile(file) {
-    return TypeScript.isDeclarationFile(
-      file.getBasename());
+    return TypeScript.isDeclarationFile(file.getBasename());
   }
 
   isConfigFile(file) {

@@ -77,9 +77,19 @@ TsCachingCompiler = class TsCachingCompiler extends MultiFileCachingCompiler {
       referencedPaths = result.referencedPaths;
     }
 
+    // Watch declaration files only from "typings" folder.
+    referencedPaths = this.filterTypings(referencedPaths);
+
+    // Check and take only the files that exist.
+    // Otherwise, caching compiler would throw an exception
+    // on non-existing ones.
     referencedPaths = referencedPaths.filter(refPath => {
       let realPath = path.resolve(refPath);
-      return fs.existsSync(realPath);
+      if (!fs.existsSync(realPath)) {
+        console.log(`Declaration file ${realPath} doesn't exist`);
+        return false;
+      }
+      return true;
     });
 
     let compileResult = {
