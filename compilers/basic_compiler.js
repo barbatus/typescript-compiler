@@ -152,14 +152,17 @@ TsBasicCompiler = class TsBasicCompiler {
   // then standardized path will be typings/foo/foo.d.ts.
   _getStandardTypingsFilePath(file) {
     let filePath = file.getPathInPackage();
-    let dirPath = ts.getDirectoryPath(ts.normalizePath(filePath));
+    let dirPath = ts.getDirectoryPath(
+      ts.normalizePath(filePath)).replace(/^typings\/?/, '');
     let pkgName = file.getPackageName();
     if (pkgName.indexOf(':') != -1) {
       pkgName = pkgName.split(':')[1];
     }
-    let pkgTest = new RegExp(`.*\/${pkgName}(\/.+|$)`);
+    let pkgTest = new RegExp(`^\/?${pkgName}(\/.+|$)`);
+    // Check if the path starts with the package name.
     if (pkgTest.test(dirPath) === false) {
-      let pkgDirPath = ts.combinePaths(dirPath, pkgName);
+      let pkgDirPath = ts.combinePaths(
+        ts.combinePaths('typings', pkgName), dirPath);
       let fileName = ts.getBaseFileName(filePath);
       filePath = ts.combinePaths(pkgDirPath, fileName);
     }
