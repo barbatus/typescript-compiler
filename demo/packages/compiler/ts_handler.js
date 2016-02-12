@@ -2,4 +2,5 @@
 
 Plugin.registerCompiler({
   extensions: ['ts'],
-}, () => new TsCachingCompiler());
+  filenames: ['tsconfig.json']
+}, () => new TypeScriptCompiler());

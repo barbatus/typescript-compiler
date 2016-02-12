@@ -9,7 +9,7 @@ Package.registerBuildPlugin({
     'ts_handler.js'
   ],
   use: [
-    'barbatus:ts-compilers@0.1.8',
+    'typescript-compiler@0.5.0',
     'ecmascript@0.1.4'
   ]
 });
