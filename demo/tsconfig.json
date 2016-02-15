@@ -1,6 +1,0 @@
-{
-  "compilerOptions": {
-    "diagnostics": true,
-    "module": "system"
-  }
-}

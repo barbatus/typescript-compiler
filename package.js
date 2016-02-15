@@ -7,7 +7,7 @@ Package.describe({
 });
 
 Npm.depends({
-  'meteor-typescript': '0.5.2',
+  'meteor-typescript': '0.5.7',
   'async': '1.4.0'
 });
 

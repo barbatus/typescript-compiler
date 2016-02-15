@@ -6,7 +6,7 @@ TypeScript = {
   validateOptions(options) {
     if (! options) return;
 
-    meteorTS.convertOptionsOrThrow(options);
+    meteorTS.validateAndConvertOptions(options);
   },
 
   // Extra options are the same compiler options
@@ -14,7 +14,7 @@ TypeScript = {
   validateExtraOptions(options) {
     if (! options) return;
 
-    meteorTS.convertOptionsOrThrow({
+    meteorTS.validateAndConvertOptions({
       compilerOptions: options
     });
   },
@@ -24,15 +24,9 @@ TypeScript = {
   getCompilerOptions(options, extraOptions) {
     let compilerOptions = options ||
       meteorTS.getDefaultOptions().compilerOptions;
-    compilerOptions = _.clone(options);
+    compilerOptions = _.clone(compilerOptions);
 
-    if (extraOptions) {
-      for (let option in extraOptions) {
-        if (extraOptions.hasOwnProperty(option)) {
-          compilerOptions[option] = extraOptions[option];
-        }
-      }
-    }
+    _.extend(compilerOptions, extraOptions);
 
     return compilerOptions;
   },
