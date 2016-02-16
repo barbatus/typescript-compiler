@@ -160,5 +160,5 @@ TypeScriptCompiler = class TypeScriptCompiler {
 }
 
 function removeTsExt(path) {
-  return path.substr(0, path.length - 3);
+  return path.replace(/\.tsx|\.ts|/g, '');
 }
