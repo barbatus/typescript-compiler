@@ -118,7 +118,7 @@ TypeScriptCompiler = class TypeScriptCompiler {
   }
 
   isConfigFile(inputFile) {
-    return inputFile.getPathInPackage() === 'tsconfig.json';
+    return inputFile.getBasename() === 'tsconfig.json';
   }
 
   processConfig(inputFiles) {
@@ -138,7 +138,6 @@ TypeScriptCompiler = class TypeScriptCompiler {
   parseConfig(cfgContent) {
     try {
       let tsconfig = JSON.parse(cfgContent);
-      TypeScript.validateOptions(tsconfig);
       if (tsconfig.files) {
         // Allow only typings in the "files" array.
         tsconfig.typings = this.getTypings(tsconfig.files);
