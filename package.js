@@ -12,11 +12,7 @@ Npm.depends({
 });
 
 Package.onUse(function(api) {
-  api.use([
-    'ecmascript@0.1.4',
-    'check@1.0.5',
-    'underscore@1.0.4'
-  ], 'server');
+  api.use(['ecmascript', 'check', 'underscore'], 'server');
 
   api.addFiles([
     'typescript-compiler.js',
@@ -29,6 +25,9 @@ Package.onUse(function(api) {
 });
 
 Package.onTest(function(api) {
-  api.use('tinytest');
-  api.use('barbatus:ts-compilers');
+  api.use(['tinytest', 'underscore']);
+  api.use('ecmascript');
+  api.use('barbatus:typescript-compiler');
+
+  api.addFiles('compiler-tests.js', 'server');
 });
