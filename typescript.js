@@ -21,14 +21,18 @@ TypeScript = {
 
   getDefaultOptions: meteorTS.getDefaultOptions,
 
-  getCompilerOptions(options, extraOptions) {
-    let compilerOptions = options ||
+  getCompilerOptions(compilerOptions, extraOptions) {
+    let resultOptions = compilerOptions ? _.clone(compilerOptions) : 
       meteorTS.getDefaultOptions().compilerOptions;
-    compilerOptions = _.clone(compilerOptions);
 
-    _.extend(compilerOptions, extraOptions);
+    // If diagnostics no defined, set it to true.
+    _.defaults(resultOptions, {
+      diagnostics: true
+    });
 
-    return compilerOptions;
+    _.extend(resultOptions, extraOptions);
+
+    return resultOptions;
   },
 
   compile(source, options) {

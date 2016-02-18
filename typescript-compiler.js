@@ -46,9 +46,9 @@ TypeScriptCompiler = class TypeScriptCompiler {
         compilerOptions = TypeScript.getCompilerOptions(
           compilerOptions, this.extraOptions);
 
-        let filePath = '/' + this.getExtendedPath(inputFile);
-        let moduleName = this.getExtendedPath(inputFile, true /*noext*/);
+        let filePath = this.getExtendedPath(inputFile);
         let typings = this.tsconfig ? this.tsconfig.typings : [];
+        let moduleName = this.getFileModuleName(inputFile, compilerOptions);
 
         let options = {
           compilerOptions,
@@ -107,10 +107,15 @@ TypeScriptCompiler = class TypeScriptCompiler {
     let packageName = inputFile.getPackageName();
     let inputFilePath = inputFile.getPathInPackage();
 
-    let filePath = packageName ? 
+    let filePath = packageName ?
       ('packages/' + packageName + '/' + inputFilePath) : inputFilePath;
 
     return noExt ? removeTsExt(filePath) : filePath;
+  }
+
+  getFileModuleName(inputFile, options) {
+    return options.module !== 'none' ?
+      this.getExtendedPath(inputFile, true): null;
   }
 
   isDeclarationFile(inputFile) {
