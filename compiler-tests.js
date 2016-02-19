@@ -98,9 +98,6 @@ Tinytest.add('typescript - compiler - tsconfig.json - config watched', (test) =>
   let inputFile = new InputFile(testCodeLine, 'foo.ts');
   compiler.processFilesForTarget([inputFile, configFile]);
 
-  test.include(inputFile.result.data, 'System.register(\"foo\"',
-    'compilation result is wrong');
-
   config.compilerOptions.module = 'commonjs';
   configFile = new InputFile(JSON.stringify(config), 'tsconfig.json');
   compiler.processFilesForTarget([inputFile, configFile]);
