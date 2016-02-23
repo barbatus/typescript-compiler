@@ -171,10 +171,24 @@ TsBasicCompiler = class TsBasicCompiler {
   }
 
   // Copies declaration files from packages to apps.
+  // File updates are evaluated based on the source hash.
   // Allows only files from the "typings" folder in packages
-  // and copy them to the "typings" folder in apps as well.
+  // and copies them to the "typings" folder in the app.
   processTypings(files) {
-    let dtFiles = files.filter(file => {
+    // Set hashes of the app's typings.
+    files.forEach(file => {
+      let isAppTypings = this.isDeclarationFile(file) &&
+        !this.isPackageFile(file);
+
+      let path = file.getPathInPackage();
+      if (isAppTypings && !this._typingsMap.has(path)) {
+        this._typingsMap.set(path, file.getSourceHash());
+      }
+    });
+
+    let copiedFiles = [];
+    // Process package typings.
+    files.forEach(file => {
       // Check if it's a package declaration file.
       let isPkgTypings = this.isDeclarationFile(file) &&
         this.isPackageFile(file);
@@ -184,35 +198,25 @@ TsBasicCompiler = class TsBasicCompiler {
         // Check if the file is in the "typings" folder.
         if (!this._typingsRegEx.test(path)) {
           console.log('Typings path ${path} doesn\'t start with "typings"');
-          return false;
+          return;
         }
 
-        // Check if it's not been processed.
-        return !this._typingsMap.has(path);
+        let filePath = this._getStandardTypingsFilePath(file);
+        let oldHash = this._typingsMap.get(filePath);
+        let newHash = file.getSourceHash();
+        // Copy file if it doesn't exist or has been updated.
+        if (oldHash !== newHash) {
+          this._copyTypings(filePath, file.getContentsAsString());
+          this._typingsMap.set(filePath, newHash);
+          copiedFiles.push(filePath);
+        }
       }
-
-      return false;
     });
 
-    let missingFiles = [];
-    for (let file of dtFiles) {
-      let filePath = this._getStandardTypingsFilePath(file);
-
-      // Resolve typings file relatively to the current app folder.
-      if (!fs.existsSync(filePath)) {
-        missingFiles.push({ filePath, file });
-      }
-    }
-
-    if (missingFiles.length) {
-      missingFiles.forEach(({filePath, file}) => {
-        this._createTypings(filePath, file);
-        this._typingsMap.set(filePath);
-      });
-
-      // Report about newly installed typings.
-      console.log(chalk.green('***** New typings have been added *****'));
-      missingFiles.forEach(({filePath, file}) => {
+    if (copiedFiles.length) {
+      // Report about added/updated typings.
+      console.log(chalk.green('***** Typings that have been added/updated *****'));
+      copiedFiles.forEach(filePath => {
         console.log(chalk.green(filePath));
       });
       console.log(chalk.green(
@@ -220,12 +224,12 @@ TsBasicCompiler = class TsBasicCompiler {
     }
   }
 
-  _createTypings(filePath, file) {
+  _copyTypings(filePath, content) {
     let dirPath = ts.getDirectoryPath(filePath);
     if (!fs.existsSync(dirPath)) {
       mkdirp.sync(Plugin.convertToOSPath(dirPath));
     }
-    fs.writeFileSync(filePath, file.getContentsAsString());
+    fs.writeFileSync(filePath, content);
   }
 
   processDiagnostics(file, diagnostics) {
@@ -258,7 +262,8 @@ TsBasicCompiler = class TsBasicCompiler {
 
     if (this.compilerOptions.diagnostics) {
       diagnostics.forEachSemantic(diagnostic =>
-        console.log(chalk.yellow(diagnostic.formattedMsg)));
+        console.log(chalk.yellow(
+          `[${file.getArch()}] ${diagnostic.formattedMsg}`)));
     }
   }
 
