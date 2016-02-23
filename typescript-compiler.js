@@ -4,13 +4,14 @@ const async = Npm.require('async');
 const Future = Npm.require('fibers/future');
 
 TypeScriptCompiler = class TypeScriptCompiler {
-  constructor(extraOptions, maxParallelism) {
+  constructor(extraOptions, maxParallelism, logFn) {
     TypeScript.validateExtraOptions(extraOptions);
 
     this.extraOptions = extraOptions;
     this.maxParallelism = maxParallelism || 10;
     this.tsconfig = null;
     this.cfgHash = null;
+    this.logFn = logFn || console.log;
   }
 
   processFilesForTarget(inputFiles) {
@@ -62,7 +63,6 @@ TypeScriptCompiler = class TypeScriptCompiler {
           result.diagnostics, compilerOptions);
 
         toBeAdded.data = result.code;
-          //toBeAdded.hash = result.hash;
         toBeAdded.sourceMap = result.sourceMap;
 
         inputFile.addJavaScript(toBeAdded);
@@ -98,7 +98,7 @@ TypeScriptCompiler = class TypeScriptCompiler {
           line: diagnostic.line,
           column: diagnostic.column
         };
-        console.log(`${error.sourcePath} (${error.line}, ${error.column}): ${error.message}`);
+        this.logFn(`${error.sourcePath} (${error.line}, ${error.column}): ${error.message}`);
       });
     }
   }

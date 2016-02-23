@@ -35,7 +35,7 @@ class InputFile {
   }
 
   getSourceHash() {
-    return sha1(this.source);
+    return sha1(this.getContentsAsString());
   }
 
   addJavaScript(result) {
@@ -69,38 +69,56 @@ Tinytest.add('typescript - compiler - extra options', (test) => {
     'compilation result is wrong');
 });
 
-function getConfig() {
-   return {
-    compilerOptions: {
-      module: 'system'
+class ConfigFile extends InputFile {
+  constructor(config) {
+    super(JSON.stringify(config), 'tsconfig.json');
+    for (let key in config) {
+      this[key] = config[key];
     }
+  }
+
+  getContentsAsString() {
+    return JSON.stringify(this);
   }
 }
 
-Tinytest.add('typescript - compiler - tsconfig.json - config recognized', (test) => {
+Tinytest.add('typescript - compiler - tsconfig.json - config applied and watched', (test) => {
   let compiler = new TypeScriptCompiler();
 
-  let config = getConfig();
-  let configFile = new InputFile(JSON.stringify(config), 'tsconfig.json');
+  let configFile = new ConfigFile({
+    compilerOptions: {
+      module: 'system'
+    }
+  });
   let inputFile = new InputFile(testCodeLine, 'foo.ts');
   compiler.processFilesForTarget([inputFile, configFile]);
 
   test.include(inputFile.result.data, 'System.register(\"foo\"',
     'compilation result is wrong');
-});
 
-
-Tinytest.add('typescript - compiler - tsconfig.json - config watched', (test) => {
-  let compiler = new TypeScriptCompiler();
-
-  let config = getConfig();
-  let configFile = new InputFile(JSON.stringify(config), 'tsconfig.json');
-  let inputFile = new InputFile(testCodeLine, 'foo.ts');
-  compiler.processFilesForTarget([inputFile, configFile]);
-
-  config.compilerOptions.module = 'commonjs';
-  configFile = new InputFile(JSON.stringify(config), 'tsconfig.json');
+  // Testing that config changes are watched.
+  configFile.compilerOptions.module = 'commonjs';
   compiler.processFilesForTarget([inputFile, configFile]);
   test.include(inputFile.result.data, 'exports.foo',
     'module change has no affect');
 });
+
+
+Tinytest.add('typescript - compiler - diagnostics - always turned on by default', (test) => {
+  let logged = false;
+  let compiler = new TypeScriptCompiler(null, null, msg => {
+    logged = msg !== undefined;
+  });
+
+  let configFile = new ConfigFile({
+    compilerOptions: {
+      module: 'system'
+    }
+  });
+  let wrongImport = 'import {api} from "lib"';
+  let inputFile = new InputFile(wrongImport, 'foo.ts');
+  compiler.processFilesForTarget([inputFile, configFile]);
+
+  test.isTrue(logged, 'Diagnostics was not logged');
+});
+
