@@ -12,7 +12,11 @@ Npm.depends({
 });
 
 Package.onUse(function(api) {
-  api.use(['ecmascript', 'check', 'underscore'], 'server');
+  api.use([
+    'ecmascript@0.1.6',
+    'check@1.0.5',
+    'underscore@1.0.4'
+  ], 'server');
 
   api.addFiles([
     'typescript-compiler.js',
