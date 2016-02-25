@@ -18,6 +18,18 @@ TypeScriptCompiler = class TypeScriptCompiler {
     // If tsconfig.json has changed, create new one.
     this.processConfig(inputFiles);
 
+    let filesSourceMap = new Map();
+    inputFiles.forEach((inputFile, index) => {
+      if (this.isConfigFile(inputFile)) return;
+
+      filesSourceMap.set(this.getExtendedPath(inputFile), index);
+    });
+    let getFileContent = filePath => {
+      let index = filesSourceMap.get(filePath);
+      return index !== undefined ?
+        inputFiles[index].getContentsAsString() : null;
+    };
+
     // Filters out typings and tsconfig.
     // Other files should be compiled.
     let tsFiles = inputFiles.filter(inputFile => 
@@ -58,11 +70,12 @@ TypeScriptCompiler = class TypeScriptCompiler {
           typings
         };
 
-        let result = TypeScript.compile(source, options);
+        let result = TypeScript.compile(getFileContent, options);
         this.processDiagnostics(inputFile,
           result.diagnostics, compilerOptions);
 
         toBeAdded.data = result.code;
+        toBeAdded.hash = result.hash;
         toBeAdded.sourceMap = result.sourceMap;
 
         inputFile.addJavaScript(toBeAdded);

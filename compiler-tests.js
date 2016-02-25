@@ -48,7 +48,7 @@ let testCodeLine = 'export const foo = "foo"';
 Tinytest.add('typescript - compiler - default options', (test) => {
   let compiler = new TypeScriptCompiler();
 
-  let inputFile = new InputFile(testCodeLine, 'foo.ts');
+  let inputFile = new InputFile(testCodeLine, 'foo1.ts');
   compiler.processFilesForTarget([inputFile]);
 
   test.isNotNull(inputFile.result,
@@ -62,10 +62,10 @@ Tinytest.add('typescript - compiler - extra options', (test) => {
     module: 'system'
   });
 
-  let inputFile = new InputFile(testCodeLine, 'foo.ts');
+  let inputFile = new InputFile(testCodeLine, 'foo2.ts');
   compiler.processFilesForTarget([inputFile]);
 
-  test.include(inputFile.result.data, 'System.register(\"foo\"',
+  test.include(inputFile.result.data, 'System.register(\"foo2\"',
     'compilation result is wrong');
 });
 
@@ -90,10 +90,10 @@ Tinytest.add('typescript - compiler - tsconfig.json - config applied and watched
       module: 'system'
     }
   });
-  let inputFile = new InputFile(testCodeLine, 'foo.ts');
+  let inputFile = new InputFile(testCodeLine, 'foo3.ts');
   compiler.processFilesForTarget([inputFile, configFile]);
 
-  test.include(inputFile.result.data, 'System.register(\"foo\"',
+  test.include(inputFile.result.data, 'System.register(\"foo3\"',
     'compilation result is wrong');
 
   // Testing that config changes are watched.
@@ -102,7 +102,6 @@ Tinytest.add('typescript - compiler - tsconfig.json - config applied and watched
   test.include(inputFile.result.data, 'exports.foo',
     'module change has no affect');
 });
-
 
 Tinytest.add('typescript - compiler - diagnostics - always turned on by default', (test) => {
   let logged = false;
@@ -115,8 +114,8 @@ Tinytest.add('typescript - compiler - diagnostics - always turned on by default'
       module: 'system'
     }
   });
-  let wrongImport = 'import {api} from "lib"';
-  let inputFile = new InputFile(wrongImport, 'foo.ts');
+  let wrongImport = 'import {api} from "lib";';
+  let inputFile = new InputFile(wrongImport, 'foo4.ts');
   compiler.processFilesForTarget([inputFile, configFile]);
 
   test.isTrue(logged, 'Diagnostics was not logged');
