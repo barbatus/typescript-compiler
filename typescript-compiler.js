@@ -37,40 +37,37 @@ TypeScriptCompiler = class TypeScriptCompiler {
 
     const future = new Future;
     async.eachLimit(tsFiles, this.maxParallelism, (inputFile, cb) => {
+      let compilerOptions = this.tsconfig ?
+        this.tsconfig.compilerOptions : null;
+
+      compilerOptions = TypeScript.getCompilerOptions(
+        compilerOptions, this.extraOptions);
+
       let source = inputFile.getContentsAsString();
-      let packageName = inputFile.getPackageName();
       let inputFilePath = inputFile.getPathInPackage();
       let outputFilePath = removeTsExt(inputFilePath) + '.js';
-      let fileOptions = inputFile.getFileOptions();
       let toBeAdded = {
         sourcePath: inputFilePath,
         path: outputFilePath,
         data: source,
         hash: inputFile.getSourceHash(),
         sourceMap: null,
-        bare: !! fileOptions.bare
+        bare: this.isBareFile(inputFile, compilerOptions)
+      };
+
+      let filePath = this.getExtendedPath(inputFile);
+      let typings = this.tsconfig ? this.tsconfig.typings : [];
+      let moduleName = this.getFileModuleName(inputFile, compilerOptions);
+      let tsOptions = {
+        compilerOptions,
+        moduleName,
+        filePath,
+        typings
       };
 
       let error = null;
       try {
-        let compilerOptions = this.tsconfig ?
-          this.tsconfig.compilerOptions : null;
-
-        compilerOptions = TypeScript.getCompilerOptions(
-          compilerOptions, this.extraOptions);
-
-        let filePath = this.getExtendedPath(inputFile);
-        let typings = this.tsconfig ? this.tsconfig.typings : [];
-        let moduleName = this.getFileModuleName(inputFile, compilerOptions);
-
-        let options = {
-          compilerOptions,
-          moduleName,
-          filePath,
-          typings
-        };
-
-        let result = TypeScript.compile(getFileContent, options);
+        let result = TypeScript.compile(getFileContent, tsOptions);
         this.processDiagnostics(inputFile,
           result.diagnostics, compilerOptions);
 
@@ -124,6 +121,13 @@ TypeScriptCompiler = class TypeScriptCompiler {
       ('packages/' + packageName + '/' + inputFilePath) : inputFilePath;
 
     return noExt ? removeTsExt(filePath) : filePath;
+  }
+
+  isBareFile(inputFile, compilerOptions) {
+    let fileOptions = inputFile.getFileOptions();
+    let packageName = inputFile.getPackageName();
+    return (fileOptions.bare ||
+      (! packageName && compilerOptions.module === 'none'));
   }
 
   getFileModuleName(inputFile, options) {

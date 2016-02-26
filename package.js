@@ -29,9 +29,15 @@ Package.onUse(function(api) {
 });
 
 Package.onTest(function(api) {
-  api.use(['tinytest', 'underscore']);
-  api.use('ecmascript');
+  api.use([
+    'tinytest',
+    'ecmascript',
+    'underscore',
+    'sanjo:jasmine@0.18.0']);
   api.use('barbatus:typescript-compiler');
 
-  api.addFiles('compiler-tests.js', 'server');
+  api.addFiles([
+    'tests/server/unit/input-file.js',
+    'tests/server/unit/compiler-tests_spec.js'
+  ], 'server');
 });
