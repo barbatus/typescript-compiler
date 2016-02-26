@@ -71,8 +71,7 @@ describe('typescript-compiler', () => {
       });
       let moduleFoo = 'module foo {}';
       let inputFile = new InputFile(moduleFoo, 'foo5.ts');
-      let compiler = new TypeScriptCompiler();
-      compiler.processFilesForTarget([inputFile, configFile]);
+      compiler.processFilesForTarget([inputFile]);
 
       expect(inputFile.result.bare).toBe(true);
     });
