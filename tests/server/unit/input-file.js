@@ -40,6 +40,10 @@ InputFile = class InputFile {
   addJavaScript(result) {
     this.result = result;
   }
+
+  getArch() {
+    return 'os';
+  }
 }
 
 ConfigFile = class ConfigFile extends InputFile {

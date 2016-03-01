@@ -58,11 +58,13 @@ TypeScriptCompiler = class TypeScriptCompiler {
       let filePath = this.getExtendedPath(inputFile);
       let typings = this.tsconfig ? this.tsconfig.typings : [];
       let moduleName = this.getFileModuleName(inputFile, compilerOptions);
+      let arch = inputFile.getArch();
       let tsOptions = {
         compilerOptions,
         moduleName,
         filePath,
-        typings
+        typings,
+        arch
       };
 
       let error = null;
