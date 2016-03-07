@@ -1,90 +1,106 @@
-'use strict';
-
 const async = Npm.require('async');
 const Future = Npm.require('fibers/future');
+const TSBuild = Npm.require('meteor-typescript').TSBuild;
 
 TypeScriptCompiler = class TypeScriptCompiler {
-  constructor(extraOptions, maxParallelism, logFn) {
+  constructor(extraOptions, maxParallelism) {
     TypeScript.validateExtraOptions(extraOptions);
 
     this.extraOptions = extraOptions;
     this.maxParallelism = maxParallelism || 10;
-    this.tsconfig = null;
+    this.tsconfig = TypeScript.getDefaultOptions();
     this.cfgHash = null;
-    this.logFn = logFn || console.log;
   }
 
   processFilesForTarget(inputFiles) {
+    this.extendFiles(inputFiles);
+
     // If tsconfig.json has changed, create new one.
     this.processConfig(inputFiles);
 
-    let filesSourceMap = new Map();
+    let archMap = {};
+    let filesMap = {};
     inputFiles.forEach((inputFile, index) => {
       if (this.isConfigFile(inputFile)) return;
 
-      filesSourceMap.set(this.getExtendedPath(inputFile), index);
+      let arch = inputFile.getArch();
+      let archFiles = archMap[arch];
+      if (! archFiles) {
+        archFiles = [];
+        archMap[arch] = archFiles;
+      }
+      archFiles.push(inputFile);
+      filesMap[this.getExtendedPath(inputFile)] = index;
     });
+
     let getFileContent = filePath => {
-      let index = filesSourceMap.get(filePath);
+      let index = filesMap[filePath];
       return index !== undefined ?
         inputFiles[index].getContentsAsString() : null;
     };
 
-    // Filters out typings and tsconfig.
-    // Other files should be compiled.
-    let tsFiles = inputFiles.filter(inputFile => 
-      !(this.isConfigFile(inputFile) || this.isDeclarationFile(inputFile)));
+    // Assemble options.
+    let typings = this.tsconfig.typings;
+    let compilerOptions = this.tsconfig.compilerOptions;
+    compilerOptions = TypeScript.getCompilerOptions(
+      compilerOptions, this.extraOptions);
+    let buildOptions = { compilerOptions, typings };
 
+    let compileDebug = new DebugLog('compilation');
     const future = new Future;
-    async.eachLimit(tsFiles, this.maxParallelism, (inputFile, cb) => {
-      let compilerOptions = this.tsconfig ?
-        this.tsconfig.compilerOptions : null;
+    async.each(_.keys(archMap), (arch, cb) => {
+      let archFiles = archMap[arch];
+      let filePaths = archFiles.map(inputFile => this.getExtendedPath(inputFile));
+      compileDebug.log('process files: %s', filePaths);
+      buildOptions.arch = arch;
 
-      compilerOptions = TypeScript.getCompilerOptions(
-        compilerOptions, this.extraOptions);
+      let buildDebug = new DebugLog('tsBuild');
+      let tsBuild = new TSBuild(filePaths, getFileContent, buildOptions);
 
-      let source = inputFile.getContentsAsString();
-      let inputFilePath = inputFile.getPathInPackage();
-      let outputFilePath = removeTsExt(inputFilePath) + '.js';
-      let toBeAdded = {
-        sourcePath: inputFilePath,
-        path: outputFilePath,
-        data: source,
-        hash: inputFile.getSourceHash(),
-        sourceMap: null,
-        bare: this.isBareFile(inputFile, compilerOptions)
-      };
+      archFiles.forEach(inputFile => {
+        if (this.isDeclarationFile(inputFile)) return;
 
-      let filePath = this.getExtendedPath(inputFile);
-      let typings = this.tsconfig ? this.tsconfig.typings : [];
-      let moduleName = this.getFileModuleName(inputFile, compilerOptions);
-      let arch = inputFile.getArch();
-      let tsOptions = {
-        compilerOptions,
-        moduleName,
-        filePath,
-        typings,
-        arch
-      };
+        let co = compilerOptions;
+        let source = inputFile.getContentsAsString();
+        let inputFilePath = inputFile.getPathInPackage();
+        let outputFilePath = removeTsExt(inputFilePath) + '.js';
+        let toBeAdded = {
+          sourcePath: inputFilePath,
+          path: outputFilePath,
+          data: source,
+          hash: inputFile.getSourceHash(),
+          sourceMap: null,
+          bare: inputFile.isBare()
+        };
 
-      let error = null;
-      try {
-        let result = TypeScript.compile(getFileContent, tsOptions);
-        this.processDiagnostics(inputFile,
-          result.diagnostics, compilerOptions);
+        let filePath = this.getExtendedPath(inputFile);
+        let moduleName = this.getFileModuleName(inputFile, co);
+
+        let emitDebug = new DebugLog('tsEmit');
+        let result = tsBuild.emit(filePath, moduleName);
+        this.processDiagnostics(inputFile, result.diagnostics, co);
+        emitDebug.end();
 
         toBeAdded.data = result.code;
+        toBeAdded.bare = toBeAdded.bare || ! result.isExternal;
         toBeAdded.hash = result.hash;
         toBeAdded.sourceMap = result.sourceMap;
 
         inputFile.addJavaScript(toBeAdded);
-      } catch (e) {
-        error = e;
-      } finally {
-        cb(error);
-      }
+      });
+
+      cb();
+
+      buildDebug.end();
     }, future.resolver());
+
     future.wait();
+
+    compileDebug.end();
+  }
+
+  extendFiles(inputFiles) {
+    inputFiles.forEach(inputFile => _.defaults(inputFile, FileMixin));
   }
 
   processDiagnostics(inputFile, diagnostics, compilerOptions) {
@@ -104,13 +120,12 @@ TypeScriptCompiler = class TypeScriptCompiler {
     // And log out other errors except package files.
     if (compilerOptions && compilerOptions.diagnostics) {
       diagnostics.semanticErrors.forEach(diagnostic => {
-        let error = {
+        inputFile.warn({
           message: diagnostic.message,
           sourcePath: this.getExtendedPath(inputFile),
           line: diagnostic.line,
           column: diagnostic.column
-        };
-        this.logFn(`${error.sourcePath} (${error.line}, ${error.column}): ${error.message}`);
+        });
       });
     }
   }
@@ -123,13 +138,6 @@ TypeScriptCompiler = class TypeScriptCompiler {
       ('packages/' + packageName + '/' + inputFilePath) : inputFilePath;
 
     return noExt ? removeTsExt(filePath) : filePath;
-  }
-
-  isBareFile(inputFile, compilerOptions) {
-    let fileOptions = inputFile.getFileOptions();
-    let packageName = inputFile.getPackageName();
-    return (fileOptions.bare ||
-      (! packageName && compilerOptions.module === 'none'));
   }
 
   getFileModuleName(inputFile, options) {

@@ -44,6 +44,10 @@ InputFile = class InputFile {
   getArch() {
     return 'os';
   }
+
+  warn(error) {
+    this.error = error;
+  }
 }
 
 ConfigFile = class ConfigFile extends InputFile {

@@ -47,8 +47,7 @@ describe('typescript-compiler', () => {
 
   describe('testing diagnostics', () => {
     it('should log out diagnostics by default', () => {
-      let logger = jasmine.createSpy();
-      let compiler = new TypeScriptCompiler(null, null, logger);
+      let compiler = new TypeScriptCompiler();
 
       let configFile = new ConfigFile({
         compilerOptions: {
@@ -57,18 +56,17 @@ describe('typescript-compiler', () => {
       });
       let wrongImport = 'import {api} from "lib";';
       let inputFile = new InputFile(wrongImport, 'foo4.ts');
+      inputFile.warn = jasmine.createSpy();
       compiler.processFilesForTarget([inputFile, configFile]);
 
-      expect(logger).toHaveBeenCalled();
-      expect(logger.calls.first().args[0]).toBeDefined();
+      expect(inputFile.warn).toHaveBeenCalled();
+      expect(inputFile.warn.calls.first().args[0]).toBeDefined();
     });
   });
 
   describe('testing modules', () => {
-    it('should render bare source code if module is none', () => {
-      let compiler = new TypeScriptCompiler({
-        module: 'none'
-      });
+    it('should render bare source code if there is no ES6 exports', () => {
+      let compiler = new TypeScriptCompiler();
       let moduleFoo = 'module foo {}';
       let inputFile = new InputFile(moduleFoo, 'foo5.ts');
       compiler.processFilesForTarget([inputFile]);

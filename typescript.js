@@ -1,5 +1,3 @@
-'use strict';
-
 const meteorTS = Npm.require('meteor-typescript');
 
 TypeScript = {
