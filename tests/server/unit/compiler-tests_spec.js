@@ -74,4 +74,26 @@ describe('typescript-compiler', () => {
       expect(inputFile.result.bare).toBe(true);
     });
   });
+
+  describe('testing architecture separation', () => {
+    it('should render diagnostics for some arch files using typings of the same arch', () => {
+      let compiler = new TypeScriptCompiler();
+      let clientCode = 'var client: API.Client';
+      let clientTypings = 'declare module API { interface Client {} };';
+      let clientFile = new InputFile(clientCode, 'client.ts', 'web');
+      clientFile.warn = jasmine.createSpy();
+      let typingsFile1 = new InputFile(clientTypings, 'client/client.d.ts', 'web');
+
+      let serverCode = 'var server: API.Client1';
+      let serverTypings = 'declare module API { interface Server {} };';
+      let serverFile = new InputFile(serverCode, 'server.ts', 'os');
+      serverFile.warn = jasmine.createSpy();
+      let typingsFile2 = new InputFile(serverTypings, 'server/server.d.ts', 'os');
+      compiler.processFilesForTarget([clientFile, typingsFile1, typingsFile2, serverFile]);
+
+      expect(clientFile.warn).not.toHaveBeenCalled();
+      expect(serverFile.warn).toHaveBeenCalled();
+      expect(serverFile.warn.calls.first().args[0].message).toContain('Client1');
+    });
+  });
 });

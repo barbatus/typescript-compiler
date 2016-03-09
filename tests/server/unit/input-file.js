@@ -7,10 +7,10 @@ function sha1(content) {
 }
 
 InputFile = class InputFile {
-  constructor(source, fileName, options) {
+  constructor(source, fileName, arch) {
     this.source = source;
     this.fileName = fileName;
-    this.options = options || {};
+    this.arch = arch || 'os';
   }
 
   getContentsAsString() {
@@ -42,7 +42,7 @@ InputFile = class InputFile {
   }
 
   getArch() {
-    return 'os';
+    return this.arch;
   }
 
   warn(error) {

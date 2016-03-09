@@ -7,7 +7,7 @@ Package.describe({
 });
 
 Npm.depends({
-  'meteor-typescript': 'https://github.com/barbatus/meteor-typescript/tarball/52fc6c7f3b5b5df9483a927bc96e7a901b61c4ab',
+  'meteor-typescript': 'https://github.com/barbatus/meteor-typescript/tarball/c4b62ae8a5cd7ecdd634cbffa287d53a9dbe6220',
   'async': '1.4.0'
 });
 
@@ -19,7 +19,7 @@ Package.onUse(function(api) {
   ], 'server');
 
   api.addFiles([
-    'debug.js',
+    'logger.js',
     'file-mixin.js',
     'typescript-compiler.js',
     'typescript.js'

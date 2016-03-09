@@ -5,6 +5,14 @@ FileMixin = {
 
   isBare() {
     let fileOptions = this.getFileOptions();
-    return fileOptions.bare;
+    return fileOptions && fileOptions.bare;
+  },
+
+  isConfig() {
+    return this.getBasename() === 'tsconfig.json';
+  },
+
+  isDeclaration() {
+    return TypeScript.isDeclarationFile(this.getBasename());
   }
 };

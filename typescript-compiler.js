@@ -21,7 +21,7 @@ TypeScriptCompiler = class TypeScriptCompiler {
     let archMap = {};
     let filesMap = {};
     inputFiles.forEach((inputFile, index) => {
-      if (this.isConfigFile(inputFile)) return;
+      if (inputFile.isConfig()) return;
 
       let arch = inputFile.getArch();
       let archFiles = archMap[arch];
@@ -46,19 +46,19 @@ TypeScriptCompiler = class TypeScriptCompiler {
       compilerOptions, this.extraOptions);
     let buildOptions = { compilerOptions, typings };
 
-    let compileDebug = new DebugLog('compilation');
+    let dcompile = Logger.newDebug('compilation');
     const future = new Future;
     async.each(_.keys(archMap), (arch, cb) => {
       let archFiles = archMap[arch];
       let filePaths = archFiles.map(inputFile => this.getExtendedPath(inputFile));
-      compileDebug.log('process files: %s', filePaths);
+      dcompile.log('process files: %s', filePaths);
       buildOptions.arch = arch;
 
-      let buildDebug = new DebugLog('tsBuild');
+      let dbuild = Logger.newDebug('tsBuild');
       let tsBuild = new TSBuild(filePaths, getFileContent, buildOptions);
 
       archFiles.forEach(inputFile => {
-        if (this.isDeclarationFile(inputFile)) return;
+        if (inputFile.isDeclaration()) return;
 
         let co = compilerOptions;
         let source = inputFile.getContentsAsString();
@@ -76,10 +76,10 @@ TypeScriptCompiler = class TypeScriptCompiler {
         let filePath = this.getExtendedPath(inputFile);
         let moduleName = this.getFileModuleName(inputFile, co);
 
-        let emitDebug = new DebugLog('tsEmit');
+        let demit = Logger.newDebug('tsEmit');
         let result = tsBuild.emit(filePath, moduleName);
         this.processDiagnostics(inputFile, result.diagnostics, co);
-        emitDebug.end();
+        demit.end();
 
         toBeAdded.data = result.code;
         toBeAdded.bare = toBeAdded.bare || ! result.isExternal;
@@ -91,12 +91,12 @@ TypeScriptCompiler = class TypeScriptCompiler {
 
       cb();
 
-      buildDebug.end();
+      dbuild.end();
     }, future.resolver());
 
     future.wait();
 
-    compileDebug.end();
+    dcompile.end();
   }
 
   extendFiles(inputFiles) {
@@ -149,13 +149,9 @@ TypeScriptCompiler = class TypeScriptCompiler {
     return TypeScript.isDeclarationFile(inputFile.getBasename());
   }
 
-  isConfigFile(inputFile) {
-    return inputFile.getBasename() === 'tsconfig.json';
-  }
-
   processConfig(inputFiles) {
     let cfgFile = inputFiles.filter(
-      inputFile => this.isConfigFile(inputFile))[0];
+      inputFile => inputFile.isConfig())[0];
     if (cfgFile) {
       let source = cfgFile.getContentsAsString();
       let hash = cfgFile.getSourceHash();
