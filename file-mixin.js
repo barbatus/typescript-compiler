@@ -8,11 +8,20 @@ FileMixin = {
     return fileOptions && fileOptions.bare;
   },
 
+  // Get root app config.
   isConfig() {
-    return this.getBasename() === 'tsconfig.json';
+    return this.getPathInPackage() === 'tsconfig.json';
   },
 
   isDeclaration() {
     return TypeScript.isDeclarationFile(this.getBasename());
+  },
+
+  // Get path with package prefix if any.
+  getPackagedPath() {
+    let packageName = this.getPackageName();
+    packageName = packageName ? packageName + '/' : '';
+    let inputFilePath = this.getPathInPackage();
+    return packageName + inputFilePath;
   }
 };

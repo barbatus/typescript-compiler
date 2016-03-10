@@ -44,7 +44,8 @@ TypeScriptCompiler = class TypeScriptCompiler {
     let compilerOptions = this.tsconfig.compilerOptions;
     compilerOptions = TypeScript.getCompilerOptions(
       compilerOptions, this.extraOptions);
-    let buildOptions = { compilerOptions, typings };
+    let useCache = this.tsconfig.useCache;
+    let buildOptions = { compilerOptions, typings, useCache };
 
     let dcompile = Logger.newDebug('compilation');
     const future = new Future;
@@ -132,21 +133,18 @@ TypeScriptCompiler = class TypeScriptCompiler {
 
   getExtendedPath(inputFile, noExt) {
     let packageName = inputFile.getPackageName();
-    let inputFilePath = inputFile.getPathInPackage();
+    let packagedPath = inputFile.getPackagedPath();
 
     let filePath = packageName ?
-      ('packages/' + packageName + '/' + inputFilePath) : inputFilePath;
+      ('packages/' + packagedPath) : packagedPath;
 
     return noExt ? removeTsExt(filePath) : filePath;
   }
 
   getFileModuleName(inputFile, options) {
-    return options.module !== 'none' ?
-      this.getExtendedPath(inputFile, true): null;
-  }
+    if (options.module === 'none') return null;
 
-  isDeclarationFile(inputFile) {
-    return TypeScript.isDeclarationFile(inputFile.getBasename());
+    return removeTsExt(inputFile.getPackagedPath());
   }
 
   processConfig(inputFiles) {

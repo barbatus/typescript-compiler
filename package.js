@@ -7,7 +7,7 @@ Package.describe({
 });
 
 Npm.depends({
-  'meteor-typescript': 'https://github.com/barbatus/meteor-typescript/tarball/c4b62ae8a5cd7ecdd634cbffa287d53a9dbe6220',
+  'meteor-typescript': 'https://github.com/barbatus/meteor-typescript/tarball/bb7cebc98d34ee606c7b0be428dde6aeb9e086bf',
   'async': '1.4.0'
 });
 
