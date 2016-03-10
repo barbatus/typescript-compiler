@@ -11,4 +11,7 @@ It has predefined compiler options as follows:
 }
 ```
 
-Recognizes and installs declaration files added to packages, where installation means copying into them the `typings` folder of the app.
+### Typings
+Recognizes and installs declaration files comming frompackages, where "installs" means copying them intothe `typings` folder of the app.
+
+For installing other typings, use `typings` utility.
