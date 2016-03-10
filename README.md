@@ -12,6 +12,6 @@ It has predefined compiler options as follows:
 ```
 
 ### Typings
-Recognizes and installs declaration files comming frompackages, where "installs" means copying them intothe `typings` folder of the app.
+Recognizes and installs declaration files comming from Atmosphere packages, where "installs" means copying them intothe `typings` folder of the app.
 
 For installing other typings, use `typings` utility.
