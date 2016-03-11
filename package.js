@@ -1,6 +1,6 @@
 Package.describe({
   name: 'barbatus:ng2-typescript-compiler',
-  version: '0.5.0-beta.1',
+  version: '0.5.0-beta.2',
   summary: 'Meteor TypeScript Compiler for Angular 2',
   git: 'https://github.com/barbatus/typesctipt-compiler/tree/ts-compilers',
   documentation: 'README.md'
@@ -25,11 +25,8 @@ Package.onUse(function(api) {
   api.addFiles([
     'file-mixin.js',
     'logger.js',
-    'typescript-helpers.js',
     'typescript-compiler.js'
   ], 'server');
-
-  api.export(['__extends', '__decorate', '__metadata', '__param', '__awaiter']);
 
   api.export(['TypeScriptCompiler'], 'server');
 });

@@ -2,15 +2,13 @@ const ts = Npm.require('typescript');
 const mkdirp = Npm.require('mkdirp');
 
 TypeScriptCompiler = class TypeScriptCompiler extends TypeScriptCompiler {
-  constructor() {
-    super({
+  constructor(extraOptions) {
+    super(_.extend({
       experimentalDecorators: true,
       emitDecoratorMetadata: true,
       moduleResolution: 'classic',
-      module: 'system',
-      // We define own helpers.
-      noEmitHelpers: true
-    });
+      module: 'system'
+    }, extraOptions));
 
     this.typingsMap = new Map();
     this.typingsRegEx = /^typings\/.*\.d\.ts$/;
