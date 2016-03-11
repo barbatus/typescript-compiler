@@ -1,4 +1,3 @@
-const fs = Plugin.fs;
 const ts = Npm.require('typescript');
 const mkdirp = Npm.require('mkdirp');
 
@@ -8,7 +7,9 @@ TypeScriptCompiler = class TypeScriptCompiler extends TypeScriptCompiler {
       experimentalDecorators: true,
       emitDecoratorMetadata: true,
       moduleResolution: 'classic',
-      module: 'system'
+      module: 'system',
+      // We define own helpers.
+      noEmitHelpers: true
     });
 
     this.typingsMap = new Map();
@@ -101,6 +102,7 @@ TypeScriptCompiler = class TypeScriptCompiler extends TypeScriptCompiler {
   }
 
   copyTypings(filePath, content) {
+    const fs = Plugin.fs;
     let dirPath = ts.getDirectoryPath(filePath);
     if (! fs.existsSync(dirPath)) {
       mkdirp.sync(Plugin.convertToOSPath(dirPath));

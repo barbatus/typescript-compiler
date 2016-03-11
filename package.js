@@ -7,33 +7,45 @@ Package.describe({
 });
 
 Npm.depends({
-  'typescript': '1.7.5',
+  'typescript': '1.8.5',
   'mkdirp': '0.5.0',
   'chalk': '1.1.1'
 });
-
-var server = 'server';
 
 Package.onUse(function(api) {
   api.versionsFrom('1.2.0.1');
 
   api.use([
-    'barbatus:typescript-compiler@0.5.0-beta.6',
+    'barbatus:typescript-compiler@0.5.0-beta.8',
     'ecmascript@0.1.4',
     'check@1.0.5',
     'underscore@1.0.4'
-  ], server);
+  ], 'server');
 
   api.addFiles([
     'file-mixin.js',
     'logger.js',
+    'typescript-helpers.js',
     'typescript-compiler.js'
-  ], server);
+  ], 'server');
 
-  api.export(['TypeScriptCompiler'], server);
+  api.export(['__extends', '__decorate', '__metadata', '__param', '__awaiter']);
+
+  api.export(['TypeScriptCompiler'], 'server');
 });
 
 Package.onTest(function(api) {
-  api.use('tinytest');
-  api.use('barbatus:ng2-typescript-compiler');
+  api.use([
+    'isobuild:compiler-plugin@1.0.0',
+    'tinytest',
+    'ecmascript',
+    'underscore',
+    'sanjo:jasmine@0.18.0']);
+  api.use('barbatus:ng2-typescript-compiler', 'server');
+
+  api.addFiles([
+    'tests/server/unit/plugin.js',
+    'tests/server/unit/input-file.js',
+    'tests/server/unit/compiler-tests_spec.js'
+  ], 'server');
 });
