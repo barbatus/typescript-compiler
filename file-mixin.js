@@ -20,7 +20,8 @@ FileMixin = {
   // Get path with package prefix if any.
   getPackagedPath() {
     let packageName = this.getPackageName();
-    packageName = packageName ? packageName + '/' : '';
+    packageName = packageName ?
+      (packageName.replace(':', '_') + '/') : '';
     let inputFilePath = this.getPathInPackage();
     return packageName + inputFilePath;
   }
