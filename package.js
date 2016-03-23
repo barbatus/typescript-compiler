@@ -1,6 +1,6 @@
 Package.describe({
   name: 'barbatus:ng2-typescript-compiler',
-  version: '0.5.0-beta.2',
+  version: '0.5.0-beta.6',
   summary: 'Meteor TypeScript Compiler for Angular 2',
   git: 'https://github.com/barbatus/typesctipt-compiler/tree/ts-compilers',
   documentation: 'README.md'
@@ -16,7 +16,7 @@ Package.onUse(function(api) {
   api.versionsFrom('1.2.0.1');
 
   api.use([
-    'barbatus:typescript-compiler@0.5.0-beta.8',
+    'barbatus:typescript-compiler@0.5.0-beta.12',
     'ecmascript@0.1.4',
     'check@1.0.5',
     'underscore@1.0.4'

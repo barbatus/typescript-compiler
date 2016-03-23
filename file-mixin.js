@@ -15,11 +15,18 @@ FileMixin = {
     return this.isDeclaration() && !this.isPackageFile();
   },
 
-  getRightPkgName() {
+  getOnePackageName() {
     let pkgName = this.getPackageName();
-    if (pkgName.indexOf(':') != -1) {
+    if (pkgName.indexOf(':') !== -1) {
       pkgName = pkgName.split(':')[1];
     }
     return pkgName;
+  },
+
+  getES6ModuleName() {
+    let packageName = this.getPackageName();
+    packageName = packageName ? `{${packageName}}/` : '';
+    let inputFilePath = this.getPathInPackage();
+    return packageName + TypeScript.removeTsExt(inputFilePath);
   }
 };

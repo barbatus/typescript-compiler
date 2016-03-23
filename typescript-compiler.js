@@ -86,7 +86,7 @@ TypeScriptCompiler = class TypeScriptCompiler extends TypeScriptCompiler {
     let path = file.getPathInPackage();
     let dirPath = ts.getDirectoryPath(
       ts.normalizePath(path)).replace(/^typings\/?/, '');
-    let pkgName = file.getRightPkgName();
+    let pkgName = file.getOnePackageName();
     let pkgTest = new RegExp(`^\/?${pkgName}(\/.+|$)`);
     // Check if the path starts with the package name.
     if (pkgTest.test(dirPath) === false) {
@@ -109,7 +109,7 @@ TypeScriptCompiler = class TypeScriptCompiler extends TypeScriptCompiler {
   }
 
   processFilesForTarget(files) {
-    files.forEach(file => _.defaults(file, FileMixin));
+    this.extendFiles(files, FileMixin);
 
     // Process typings from packages only in dev mode.
     if (this.isDevRunCommand()) {
