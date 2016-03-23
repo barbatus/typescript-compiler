@@ -89,7 +89,7 @@ describe('typescript-compiler', () => {
       clientFile.warn = jasmine.createSpy();
       let typingsFile1 = new InputFile(clientTypings, 'client/client.d.ts', 'web');
 
-      let serverCode = 'var server: API.Client1';
+      let serverCode = 'var server: API.Client';
       let serverTypings = 'declare module API { interface Server {} };';
       let serverFile = new InputFile(serverCode, 'server.ts', 'os');
       serverFile.warn = jasmine.createSpy();
@@ -98,7 +98,7 @@ describe('typescript-compiler', () => {
 
       expect(clientFile.warn).not.toHaveBeenCalled();
       expect(serverFile.warn).toHaveBeenCalled();
-      expect(serverFile.warn.calls.first().args[0].message).toContain('Client1');
+      expect(serverFile.warn.calls.first().args[0].message).toContain('Client');
     });
   });
 });
