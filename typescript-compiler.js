@@ -18,8 +18,7 @@ TypeScriptCompiler = class TypeScriptCompiler {
     // If tsconfig.json has changed, create new one.
     this.processConfig(inputFiles);
 
-    let archMap = {};
-    let filesMap = {};
+    let archMap = {}, filesMap = {};
     inputFiles.forEach((inputFile, index) => {
       if (inputFile.isConfig()) return;
 
@@ -64,7 +63,7 @@ TypeScriptCompiler = class TypeScriptCompiler {
         let co = compilerOptions;
         let source = inputFile.getContentsAsString();
         let inputFilePath = inputFile.getPathInPackage();
-        let outputFilePath = removeTsExt(inputFilePath) + '.js';
+        let outputFilePath = TypeScript.removeTsExt(inputFilePath) + '.js';
         let toBeAdded = {
           sourcePath: inputFilePath,
           path: outputFilePath,
@@ -83,7 +82,8 @@ TypeScriptCompiler = class TypeScriptCompiler {
         demit.end();
 
         toBeAdded.data = result.code;
-        toBeAdded.bare = toBeAdded.bare || ! result.isExternal;
+        let module = compilerOptions.module;
+        toBeAdded.bare = toBeAdded.bare || module === 'none';
         toBeAdded.hash = result.hash;
         toBeAdded.sourceMap = result.sourceMap;
 
@@ -100,8 +100,9 @@ TypeScriptCompiler = class TypeScriptCompiler {
     dcompile.end();
   }
 
-  extendFiles(inputFiles) {
-    inputFiles.forEach(inputFile => _.defaults(inputFile, FileMixin));
+  extendFiles(inputFiles, mixins) {
+    mixins = _.extend({}, FileMixin, mixins);
+    inputFiles.forEach(inputFile => _.defaults(inputFile, mixins));
   }
 
   processDiagnostics(inputFile, diagnostics, compilerOptions) {
@@ -131,20 +132,20 @@ TypeScriptCompiler = class TypeScriptCompiler {
     }
   }
 
-  getExtendedPath(inputFile, noExt) {
+  getExtendedPath(inputFile) {
     let packageName = inputFile.getPackageName();
-    let packagedPath = inputFile.getPackagedPath();
+    let packagedPath = inputFile.getPackagePrefixPath();
 
     let filePath = packageName ?
       ('packages/' + packagedPath) : packagedPath;
 
-    return noExt ? removeTsExt(filePath) : filePath;
+    return filePath;
   }
 
   getFileModuleName(inputFile, options) {
     if (options.module === 'none') return null;
 
-    return removeTsExt(inputFile.getPackagedPath());
+    return inputFile.getES6ModuleName();
   }
 
   processConfig(inputFiles) {
@@ -182,8 +183,4 @@ TypeScriptCompiler = class TypeScriptCompiler {
       return TypeScript.isDeclarationFile(filePath);
     });
   }
-}
-
-function removeTsExt(path) {
-  return path.replace(/(\.tsx|\.ts)$/g, '');
 }

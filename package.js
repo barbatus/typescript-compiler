@@ -1,13 +1,13 @@
 Package.describe({
   name: 'barbatus:typescript-compiler',
-  version: '0.5.0-beta.9',
+  version: '0.5.0-beta.12',
   summary: 'TypeScript Compiler for Meteor',
   git: 'https://github.com/barbatus/ts-compilers',
   documentation: 'README.md'
 });
 
 Npm.depends({
-  'meteor-typescript': 'https://github.com/barbatus/meteor-typescript/tarball/5ddd13128639294684e49cbfce3e4323bdccc139',
+  'meteor-typescript': 'https://github.com/barbatus/meteor-typescript/tarball/f0be9d98fa76e6fcdb12f216e4f6696aa52757cb',
   'async': '1.4.0'
 });
 

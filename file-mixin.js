@@ -18,11 +18,16 @@ FileMixin = {
   },
 
   // Get path with package prefix if any.
-  getPackagedPath() {
+  getPackagePrefixPath() {
     let packageName = this.getPackageName();
     packageName = packageName ?
       (packageName.replace(':', '_') + '/') : '';
     let inputFilePath = this.getPathInPackage();
     return packageName + inputFilePath;
+  },
+
+  getES6ModuleName() {
+    let packaged = this.getPackagePrefixPath();
+    return TypeScript.removeTsExt(packaged);
   }
 };

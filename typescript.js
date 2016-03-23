@@ -25,6 +25,7 @@ TypeScript = {
 
     // If diagnostics no defined, set it to true.
     _.defaults(resultOptions, {
+      module: 'commonjs',
       diagnostics: true
     });
 
@@ -44,5 +45,9 @@ TypeScript = {
 
   isDeclarationFile(filePath) {
     return filePath.match(/^.*\.d\.ts$/);
+  },
+
+  removeTsExt(path) {
+    return path && path.replace(/(\.tsx|\.ts)$/g, '');
   }
 }

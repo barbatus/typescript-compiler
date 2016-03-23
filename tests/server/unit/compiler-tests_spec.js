@@ -65,11 +65,16 @@ describe('typescript-compiler', () => {
   });
 
   describe('testing modules', () => {
-    it('should render bare source code if there is no ES6 exports', () => {
+    it('should render bare source code if module set to none', () => {
       let compiler = new TypeScriptCompiler();
+      let configFile = new ConfigFile({
+        compilerOptions: {
+          module: 'none'
+        }
+      });
       let moduleFoo = 'module foo {}';
       let inputFile = new InputFile(moduleFoo, 'foo5.ts');
-      compiler.processFilesForTarget([inputFile]);
+      compiler.processFilesForTarget([inputFile, configFile]);
 
       expect(inputFile.result.bare).toBe(true);
     });
