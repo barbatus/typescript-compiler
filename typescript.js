@@ -20,15 +20,15 @@ TypeScript = {
   getDefaultOptions: meteorTS.getDefaultOptions,
 
   getCompilerOptions(compilerOptions, extraOptions) {
-    let resultOptions = compilerOptions ? _.clone(compilerOptions) : 
-      meteorTS.getDefaultOptions().compilerOptions;
+    let dco = meteorTS.getDefaultOptions().compilerOptions;
+    let resultOptions = compilerOptions ? _.clone(compilerOptions) : dco;
 
-    // If diagnostics no defined, set it to true.
-    _.defaults(resultOptions, {
-      module: 'commonjs',
-      diagnostics: true
-    });
+    // First, default undefined values, e.g.,
+    // if diagnostics undefined, set it to true, etc.
+    _.defaults(resultOptions, dco);
 
+    // Second, apply extra options, i.e.,
+    // options passed in the compiler constructor.
     _.extend(resultOptions, extraOptions);
 
     return resultOptions;
