@@ -72,7 +72,6 @@ TypeScriptCompiler = class TypeScriptCompiler extends TypeScriptCompiler {
     if (copiedFiles.length) {
       Logger.info('***** Typings that have been added/updated *****');
       copiedFiles.forEach(path => Logger.info(path));
-      Logger.info('Add typings in tsconfig.json or by references in files.');
     }
   }
 
