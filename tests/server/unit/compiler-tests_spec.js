@@ -22,6 +22,15 @@ describe('typescript-compiler', () => {
 
       expect(inputFile.result.data).toContain('System.register(\"foo2\"');
     });
+
+    it('should exclude from node_modules by default', () => {
+      let compiler = new TypeScriptCompiler();
+
+      let inputFile = new InputFile(testCodeLine, 'node_modules/foo3.ts');
+      compiler.processFilesForTarget([inputFile]);
+
+      expect(inputFile.result).toBeNull();
+    });
   });
 
   describe('testing tsconfig.json', () => {
@@ -42,6 +51,18 @@ describe('typescript-compiler', () => {
       configFile.compilerOptions.module = 'commonjs';
       compiler.processFilesForTarget([inputFile, configFile]);
       expect(inputFile.result.data).toContain('exports.foo');
+    });
+
+    it('should exclude files using patterns in tsconfig.exclude', () => {
+      let compiler = new TypeScriptCompiler();
+
+      let configFile = new ConfigFile({
+        exclude: ['foo/**']
+      });
+      let inputFile = new InputFile(testCodeLine, 'foo/foo4.ts');
+      compiler.processFilesForTarget([inputFile, configFile]);
+
+      expect(inputFile.result).toBeNull();
     });
   });
 

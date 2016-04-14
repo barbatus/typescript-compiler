@@ -1,5 +1,6 @@
 const async = Npm.require('async');
 const Future = Npm.require('fibers/future');
+const minimatch = Npm.require('minimatch');
 const TSBuild = Npm.require('meteor-typescript').TSBuild;
 
 TypeScriptCompiler = class TypeScriptCompiler {
@@ -9,6 +10,8 @@ TypeScriptCompiler = class TypeScriptCompiler {
     this.extraOptions = extraOptions;
     this.maxParallelism = maxParallelism || 10;
     this.tsconfig = TypeScript.getDefaultOptions();
+    this.defExclude = ['node_modules/**'];
+    this.tsconfig.exclude = this.defExclude;
     this.cfgHash = null;
   }
 
@@ -17,6 +20,8 @@ TypeScriptCompiler = class TypeScriptCompiler {
 
     // If tsconfig.json has changed, create new one.
     this.processConfig(inputFiles);
+
+    inputFiles = this.excludeFiles(inputFiles);
 
     let archMap = {}, filesMap = {};
     inputFiles.forEach((inputFile, index) => {
@@ -165,15 +170,39 @@ TypeScriptCompiler = class TypeScriptCompiler {
   parseConfig(cfgContent) {
     try {
       let tsconfig = JSON.parse(cfgContent);
-      if (tsconfig.files) {
-        // Allow only typings in the "files" array.
-        tsconfig.typings = this.getTypings(tsconfig.files);
+
+      let files = tsconfig.files || [];
+      if (! _.isArray(files)) {
+        throw new Error('[tsconfig]: files is not array');
       }
+      // Allow only typings in the "files" array.
+      tsconfig.typings = this.getTypings(files);
+
+      let exclude = tsconfig.exclude || [];
+      if (! _.isArray(exclude)) {
+        throw new Error('[tsconfig]: exclude is not array');
+      }
+      tsconfig.exclude = exclude.concat(this.defExclude);
 
       return tsconfig;
     } catch(err) {
       throw new Error(`Format of the tsconfig is invalid: ${err}`);
     }
+  }
+
+  excludeFiles(inputFiles) {
+    let resultFiles = inputFiles;
+
+    let dexclude = Logger.newDebug('exclude');
+    for (let ex of this.tsconfig.exclude) {
+      resultFiles = resultFiles.filter(inputFile => {
+        dexclude.log('exclude pattern %s', ex);
+        return ! minimatch(inputFile.getPathInPackage(), ex);
+      });
+    }
+    dexclude.end();
+
+    return resultFiles;
   }
 
   getTypings(filePaths) {

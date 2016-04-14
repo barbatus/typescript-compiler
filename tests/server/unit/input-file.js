@@ -10,6 +10,7 @@ InputFile = class InputFile {
   constructor(source, fileName, arch) {
     this.source = source;
     this.fileName = fileName;
+    this.result = null;
     this.arch = arch || 'os';
   }
 
