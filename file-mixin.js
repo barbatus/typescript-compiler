@@ -1,4 +1,14 @@
+const createHash = Npm.require('crypto').createHash;
+
 FileMixin = {
+  id() {
+    let hash = createHash('sha1');
+    let path = this.getPathInPackage();
+    let fileHash = this.getSourceHash();
+    let fileId = hash.update(path + fileHash).digest('hex');
+    return fileId;
+  },
+
   warn(error) {
     console.log(`${error.sourcePath} (${error.line}, ${error.column}): ${error.message}`);
   },

@@ -52,8 +52,7 @@ TypeScriptCompiler = class TypeScriptCompiler {
     let buildOptions = { compilerOptions, typings, useCache };
 
     let dcompile = Logger.newDebug('compilation');
-    const future = new Future;
-    async.each(_.keys(archMap), (arch, cb) => {
+    _.keys(archMap).forEach((arch, cb) => {
       let archFiles = archMap[arch];
       let filePaths = archFiles.map(inputFile => this.getExtendedPath(inputFile));
       dcompile.log('process files: %s', filePaths);
@@ -62,8 +61,9 @@ TypeScriptCompiler = class TypeScriptCompiler {
       let dbuild = Logger.newDebug('tsBuild');
       let tsBuild = new TSBuild(filePaths, getFileContent, buildOptions);
 
-      archFiles.forEach(inputFile => {
-        if (inputFile.isDeclaration()) return;
+      let future = new Future;
+      async.each(archFiles, (inputFile, cb) => {
+        if (inputFile.isDeclaration()) { cb(); return; };
 
         let co = compilerOptions;
         let source = inputFile.getContentsAsString();
@@ -93,14 +93,14 @@ TypeScriptCompiler = class TypeScriptCompiler {
         toBeAdded.sourceMap = result.sourceMap;
 
         inputFile.addJavaScript(toBeAdded);
-      });
 
-      cb();
+        cb();
+      }, future.resolver());
+
+      future.wait();
 
       dbuild.end();
-    }, future.resolver());
-
-    future.wait();
+    });
 
     dcompile.end();
   }
@@ -196,8 +196,9 @@ TypeScriptCompiler = class TypeScriptCompiler {
     let dexclude = Logger.newDebug('exclude');
     for (let ex of this.tsconfig.exclude) {
       resultFiles = resultFiles.filter(inputFile => {
-        dexclude.log('exclude pattern %s', ex);
-        return ! minimatch(inputFile.getPathInPackage(), ex);
+        let path = inputFile.getPathInPackage();
+        dexclude.log('exclude pattern %s: %s', ex, path);
+        return ! minimatch(path, ex);
       });
     }
     dexclude.end();
