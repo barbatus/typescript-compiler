@@ -2,35 +2,49 @@ const util = Npm.require('util');
 
 class Logger_ {
   constructor() {
-    this.llevel = process.env.TYPESCRIPT_LOG; 
+    this.llevel = process.env.TYPESCRIPT_LOG;
   }
 
-  newDebug(name) {
-    let debug = new Debug(name);
-    if (this.isDebug) debug.start();
-    return debug;
+  newProfiler(name) {
+    let profiler = new Profiler(name);
+    if (this.isProfile) profiler.start();
+    return profiler;
   }
 
   get isDebug() {
     return this.llevel >= 2;
   }
 
-  log(msg) {
+  get isProfile() {
+    return this.llevel >= 3;
+  }
+
+  get isAssert() {
+    return this.llevel >= 4;
+  }
+
+  log(msg, ...args) {
     if (this.llevel >= 1) {
-      console.log(msg);
+      console.log.apply(null, [msg].concat(args));
     }
   }
 
-  debug(msg) {
+  debug(msg, ...args) {
     if (this.isDebug) {
-      console.log(msg);
+      this.log.apply(this, msg, args);
+    }
+  }
+
+  assert(msg, ...args) {
+    if (this.isAssert) {
+      this.log.apply(this, msg, args);
     }
   }
 };
 
 Logger = new Logger_();
 
-class Debug {
+class Profiler {
   constructor(name) {
     this.name = name;
   }
@@ -39,12 +53,6 @@ class Debug {
     console.log('%s started', this.name);
     console.time(util.format('%s time', this.name));
     this._started = true;
-  }
-
-  log(msg, ...args) {
-    if (this._started) {
-      console.log.apply(null, [msg].concat(args));
-    }
   }
 
   end() {

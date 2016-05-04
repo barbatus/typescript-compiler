@@ -23,18 +23,15 @@ TypeScriptCompiler = class TypeScriptCompiler {
 
     inputFiles = this.excludeFiles(inputFiles);
 
-    let archMap = {}, filesMap = {};
+    let filesMap = {}, archMap = {};
     inputFiles.forEach((inputFile, index) => {
-      if (inputFile.isConfig()) return;
-
-      let arch = inputFile.getArch();
-      let archFiles = archMap[arch];
-      if (! archFiles) {
-        archFiles = [];
-        archMap[arch] = archFiles;
-      }
-      archFiles.push(inputFile);
       filesMap[this.getExtendedPath(inputFile)] = index;
+      archMap[inputFile.getArch()] = [];
+    });
+
+    _.keys(archMap).forEach(arch => {
+      let archFiles = this.getArchFiles(inputFiles, arch);
+      archMap[arch] = archFiles;
     });
 
     let getFileContent = filePath => {
@@ -51,20 +48,21 @@ TypeScriptCompiler = class TypeScriptCompiler {
     let useCache = this.tsconfig.useCache;
     let buildOptions = { compilerOptions, typings, useCache };
 
-    let dcompile = Logger.newDebug('compilation');
+    let pcompile = Logger.newProfiler('compilation');
     _.keys(archMap).forEach((arch, cb) => {
       let archFiles = archMap[arch];
       let filePaths = archFiles.map(inputFile => this.getExtendedPath(inputFile));
-      dcompile.log('process files: %s', filePaths);
+      Logger.log('process files: %s', filePaths);
       buildOptions.arch = arch;
-
-      let dbuild = Logger.newDebug('tsBuild');
+      let pbuild = Logger.newProfiler('tsBuild');
       let tsBuild = new TSBuild(filePaths, getFileContent, buildOptions);
+      pbuild.end();
 
+      let pfiles = Logger.newProfiler('tsEmitFiles');
       let future = new Future;
-      async.each(archFiles, (inputFile, cb) => {
-        if (inputFile.isDeclaration()) { cb(); return; };
-
+      // Don't emit typings.
+      archFiles = archFiles.filter(inputFile => !inputFile.isDeclaration());
+      async.eachLimit(archFiles, this.maxParallelism, (inputFile, cb) => {
         let co = compilerOptions;
         let source = inputFile.getContentsAsString();
         let inputFilePath = inputFile.getPathInPackage();
@@ -81,28 +79,27 @@ TypeScriptCompiler = class TypeScriptCompiler {
         let filePath = this.getExtendedPath(inputFile);
         let moduleName = this.getFileModuleName(inputFile, co);
 
-        let demit = Logger.newDebug('tsEmit');
+        let pemit = Logger.newProfiler('tsEmit');
         let result = tsBuild.emit(filePath, moduleName);
         this.processDiagnostics(inputFile, result.diagnostics, co);
-        demit.end();
+        pemit.end();
 
         toBeAdded.data = result.code;
         let module = compilerOptions.module;
         toBeAdded.bare = toBeAdded.bare || module === 'none';
         toBeAdded.hash = result.hash;
         toBeAdded.sourceMap = result.sourceMap;
-
         inputFile.addJavaScript(toBeAdded);
 
         cb();
       }, future.resolver());
 
-      future.wait();
+      pfiles.end();
 
-      dbuild.end();
+      future.wait();
     });
 
-    dcompile.end();
+    pcompile.end();
   }
 
   extendFiles(inputFiles, mixins) {
@@ -193,17 +190,41 @@ TypeScriptCompiler = class TypeScriptCompiler {
   excludeFiles(inputFiles) {
     let resultFiles = inputFiles;
 
-    let dexclude = Logger.newDebug('exclude');
+    let pexclude = Logger.newProfiler('exclude');
     for (let ex of this.tsconfig.exclude) {
       resultFiles = resultFiles.filter(inputFile => {
         let path = inputFile.getPathInPackage();
-        dexclude.log('exclude pattern %s: %s', ex, path);
+        Logger.assert('exclude pattern %s: %s', ex, path);
         return ! minimatch(path, ex);
       });
     }
-    dexclude.end();
+    pexclude.end();
 
     return resultFiles;
+  }
+
+  getArchFiles(inputFiles, arch) {
+    let archFiles = inputFiles.filter((inputFile, index) => {
+      if (inputFile.isConfig()) return false;
+
+      return inputFile.getArch() === arch;
+    });
+
+    // Include only typings that current arch needs,
+    // typings/main is for the server only and
+    // typings/browser - for the client.
+    let excludes = arch.startsWith('web') ?
+      ['typings/main/**', 'typings/main.d.ts'] :
+      ['typings/browser/**', 'typings/browser.d.ts'];
+
+    for (let ex of excludes) {
+      archFiles = archFiles.filter(inputFile => {
+        let path = inputFile.getPathInPackage();
+        return ! minimatch(path, ex);
+      });
+    }
+
+    return archFiles;
   }
 
   getTypings(filePaths) {
