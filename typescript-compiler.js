@@ -10,7 +10,7 @@ TypeScriptCompiler = class TypeScriptCompiler {
     this.extraOptions = extraOptions;
     this.maxParallelism = maxParallelism || 10;
     this.tsconfig = TypeScript.getDefaultOptions();
-    this.defExclude = ['node_modules/**'];
+    this.defExclude = ['**/node_modules/**'];
     this.tsconfig.exclude = this.defExclude;
     this.cfgHash = null;
   }

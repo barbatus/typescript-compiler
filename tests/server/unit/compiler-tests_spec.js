@@ -26,7 +26,7 @@ describe('typescript-compiler', () => {
     it('should exclude from node_modules by default', () => {
       let compiler = new TypeScriptCompiler();
 
-      let inputFile = new InputFile(testCodeLine, 'node_modules/foo3.ts');
+      let inputFile = new InputFile(testCodeLine, 'foo/node_modules/foo3.ts');
       compiler.processFilesForTarget([inputFile]);
 
       expect(inputFile.result).toBeNull();
