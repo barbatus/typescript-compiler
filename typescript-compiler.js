@@ -2,6 +2,7 @@ const async = Npm.require('async');
 const Future = Npm.require('fibers/future');
 const minimatch = Npm.require('minimatch');
 const TSBuild = Npm.require('meteor-typescript').TSBuild;
+const createHash = Npm.require('crypto').createHash;
 
 TypeScriptCompiler = class TypeScriptCompiler {
   constructor(extraOptions, maxParallelism) {
@@ -13,6 +14,7 @@ TypeScriptCompiler = class TypeScriptCompiler {
     this.defExclude = ['**/node_modules/**'];
     this.tsconfig.exclude = this.defExclude;
     this.cfgHash = null;
+    this.diagHash = new Set;
   }
 
   processFilesForTarget(inputFiles) {
@@ -23,19 +25,15 @@ TypeScriptCompiler = class TypeScriptCompiler {
 
     inputFiles = this.excludeFiles(inputFiles);
 
-    let filesMap = {}, archMap = {};
-    inputFiles.forEach((inputFile, index) => {
-      filesMap[this.getExtendedPath(inputFile)] = index;
-      archMap[inputFile.getArch()] = [];
-    });
+    if (! inputFiles.length) return;
 
-    _.keys(archMap).forEach(arch => {
-      let archFiles = this.getArchFiles(inputFiles, arch);
-      archMap[arch] = archFiles;
+    let filesMap = new Map;
+    inputFiles.forEach((inputFile, index) => {
+      filesMap.set(this.getExtendedPath(inputFile), index);
     });
 
     let getFileContent = filePath => {
-      let index = filesMap[filePath];
+      let index = filesMap.get(filePath);
       return index !== undefined ?
         inputFiles[index].getContentsAsString() : null;
     };
@@ -49,55 +47,54 @@ TypeScriptCompiler = class TypeScriptCompiler {
     let buildOptions = { compilerOptions, typings, useCache };
 
     let pcompile = Logger.newProfiler('compilation');
-    _.keys(archMap).forEach((arch, cb) => {
-      let archFiles = archMap[arch];
-      let filePaths = archFiles.map(inputFile => this.getExtendedPath(inputFile));
-      Logger.log('process files: %s', filePaths);
-      buildOptions.arch = arch;
-      let pbuild = Logger.newProfiler('tsBuild');
-      let tsBuild = new TSBuild(filePaths, getFileContent, buildOptions);
-      pbuild.end();
+    let arch = inputFiles[0].getArch();
+    let archFiles = this.filterArchFiles(inputFiles, arch);
+    let filePaths = archFiles.map(inputFile => this.getExtendedPath(inputFile));
+    Logger.log('process files: %s', filePaths);
+    buildOptions.arch = arch;
+    let pbuild = Logger.newProfiler('tsBuild');
+    let tsBuild = new TSBuild(filePaths, getFileContent, buildOptions);
+    pbuild.end();
 
-      let pfiles = Logger.newProfiler('tsEmitFiles');
-      let future = new Future;
-      // Don't emit typings.
-      archFiles = archFiles.filter(inputFile => !inputFile.isDeclaration());
-      async.eachLimit(archFiles, this.maxParallelism, (inputFile, cb) => {
-        let co = compilerOptions;
-        let source = inputFile.getContentsAsString();
-        let inputFilePath = inputFile.getPathInPackage();
-        let outputFilePath = TypeScript.removeTsExt(inputFilePath) + '.js';
-        let toBeAdded = {
-          sourcePath: inputFilePath,
-          path: outputFilePath,
-          data: source,
-          hash: inputFile.getSourceHash(),
-          sourceMap: null,
-          bare: inputFile.isBare()
-        };
+    let pfiles = Logger.newProfiler('tsEmitFiles');
+    let future = new Future;
+    // Don't emit typings.
+    archFiles = archFiles.filter(inputFile => !inputFile.isDeclaration());
+    async.eachLimit(archFiles, this.maxParallelism, (inputFile, cb) => {
+      let co = compilerOptions;
+      let source = inputFile.getContentsAsString();
+      let inputFilePath = inputFile.getPathInPackage();
+      let outputFilePath = TypeScript.removeTsExt(inputFilePath) + '.js';
+      let toBeAdded = {
+        sourcePath: inputFilePath,
+        path: outputFilePath,
+        data: source,
+        hash: inputFile.getSourceHash(),
+        sourceMap: null,
+        bare: inputFile.isBare()
+      };
 
-        let filePath = this.getExtendedPath(inputFile);
-        let moduleName = this.getFileModuleName(inputFile, co);
+      let filePath = this.getExtendedPath(inputFile);
+      let moduleName = this.getFileModuleName(inputFile, co);
 
-        let pemit = Logger.newProfiler('tsEmit');
-        let result = tsBuild.emit(filePath, moduleName);
-        this.processDiagnostics(inputFile, result.diagnostics, co);
-        pemit.end();
+      let pemit = Logger.newProfiler('tsEmit');
+      let result = tsBuild.emit(filePath, moduleName);
+      this.processDiagnostics(inputFile, result.diagnostics, co);
+      pemit.end();
 
-        toBeAdded.data = result.code;
-        let module = compilerOptions.module;
-        toBeAdded.bare = toBeAdded.bare || module === 'none';
-        toBeAdded.hash = result.hash;
-        toBeAdded.sourceMap = result.sourceMap;
-        inputFile.addJavaScript(toBeAdded);
+      toBeAdded.data = result.code;
+      let module = compilerOptions.module;
+      toBeAdded.bare = toBeAdded.bare || module === 'none';
+      toBeAdded.hash = result.hash;
+      toBeAdded.sourceMap = result.sourceMap;
+      inputFile.addJavaScript(toBeAdded);
 
-        cb();
-      }, future.resolver());
+      cb();
+    }, future.resolver());
 
-      pfiles.end();
+    pfiles.end();
 
-      future.wait();
-    });
+    future.wait();
 
     pcompile.end();
   }
@@ -108,14 +105,29 @@ TypeScriptCompiler = class TypeScriptCompiler {
   }
 
   processDiagnostics(inputFile, diagnostics, compilerOptions) {
-    // Always throw syntax errors.
-    diagnostics.syntacticErrors.forEach(diagnostic => {
-      inputFile.error({
+    // Remove duplicated warnings for shared files
+    // by saving hashes of already shown warnings.
+    let reduce = (diagnostic, cb) => {
+      let dob = {
         message: diagnostic.message,
         sourcePath: this.getExtendedPath(inputFile),
         line: diagnostic.line,
         column: diagnostic.column
-      });
+      };
+      let arch = inputFile.getShortArch();
+      dob.arch = arch === 'web' ? 'os' : 'web';
+      let hash = this.getShallowHash(dob);
+      if (! this.diagHash.has(hash)) {
+        dob.arch = arch;
+        hash = this.getShallowHash(dob);
+        this.diagHash.add(hash);
+        cb(dob);
+      }
+    }
+
+    // Always throw syntax errors.
+    diagnostics.syntacticErrors.forEach(diagnostic => {
+      reduce(diagnostic, dob => inputFile.error(dob));
     });
 
     let packageName = inputFile.getPackageName();
@@ -124,14 +136,21 @@ TypeScriptCompiler = class TypeScriptCompiler {
     // And log out other errors except package files.
     if (compilerOptions && compilerOptions.diagnostics) {
       diagnostics.semanticErrors.forEach(diagnostic => {
-        inputFile.warn({
-          message: diagnostic.message,
-          sourcePath: this.getExtendedPath(inputFile),
-          line: diagnostic.line,
-          column: diagnostic.column
-        });
+        reduce(diagnostic, dob => inputFile.warn(dob));
       });
     }
+  }
+
+  getShallowHash(ob) {
+    let hash = createHash('sha1');
+    let keys = Object.keys(ob);
+    keys.sort();
+
+    keys.forEach(key => {
+      hash.update(key).update('' + ob[key]);
+    });
+
+    return hash.digest('hex');
   }
 
   getExtendedPath(inputFile) {
@@ -203,7 +222,7 @@ TypeScriptCompiler = class TypeScriptCompiler {
     return resultFiles;
   }
 
-  getArchFiles(inputFiles, arch) {
+  filterArchFiles(inputFiles, arch) {
     let archFiles = inputFiles.filter((inputFile, index) => {
       if (inputFile.isConfig()) return false;
 

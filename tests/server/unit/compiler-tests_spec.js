@@ -102,24 +102,42 @@ describe('typescript-compiler', () => {
   });
 
   describe('testing architecture separation', () => {
-    it('should render diagnostics for some arch files using typings of the same arch', () => {
-      let compiler = new TypeScriptCompiler();
+    it('typings from typings/browser is used for the browser arch only', () => {
       let clientCode = 'var client: API.Client';
+      let serverCode = 'var server: API.Client';
       let clientTypings = 'declare module API { interface Client {} };';
+      let serverTypings = 'declare module API { interface Server {} };';
+
       let clientFile = new InputFile(clientCode, 'client.ts', 'web');
       clientFile.warn = jasmine.createSpy();
-      let typingsFile1 = new InputFile(clientTypings, 'client/client.d.ts', 'web');
+      let typingsFile1 = new InputFile(clientTypings, 'typings/browser/client.d.ts', 'web');
+      let typingsFile2 = new InputFile(serverTypings, 'typings/main/server.d.ts', 'web');
 
-      let serverCode = 'var server: API.Client';
-      let serverTypings = 'declare module API { interface Server {} };';
       let serverFile = new InputFile(serverCode, 'server.ts', 'os');
       serverFile.warn = jasmine.createSpy();
-      let typingsFile2 = new InputFile(serverTypings, 'server/server.d.ts', 'os');
-      compiler.processFilesForTarget([clientFile, typingsFile1, typingsFile2, serverFile]);
+      let typingsFile3 = new InputFile(clientTypings, 'typings/browser/client.d.ts', 'os');
+      let typingsFile4 = new InputFile(serverTypings, 'typings/main/server.d.ts', 'os');
+      let compiler = new TypeScriptCompiler();
+      compiler.processFilesForTarget([clientFile, typingsFile1, typingsFile2]);
+      compiler.processFilesForTarget([serverFile, typingsFile3, typingsFile4]);
 
       expect(clientFile.warn).not.toHaveBeenCalled();
       expect(serverFile.warn).toHaveBeenCalled();
       expect(serverFile.warn.calls.first().args[0].message).toContain('Client');
+    });
+
+    it(`same diagnostics messages are not more than once`, () => {
+      let wrongImport = 'import {api} from "lib";';
+      let clientFile = new InputFile(wrongImport, 'common.ts', 'web');
+      clientFile.warn = jasmine.createSpy();
+      let serverFile = new InputFile(wrongImport, 'common.ts', 'os');
+      serverFile.warn = jasmine.createSpy();
+
+      let compiler = new TypeScriptCompiler();
+      compiler.processFilesForTarget([clientFile]);
+      compiler.processFilesForTarget([serverFile]);
+      expect(clientFile.warn).toHaveBeenCalled();
+      expect(serverFile.warn).not.toHaveBeenCalled();
     });
   });
 });
