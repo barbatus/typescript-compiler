@@ -64,7 +64,7 @@ TypeScriptCompiler = class TypeScriptCompiler {
       let co = compilerOptions;
       let source = inputFile.getContentsAsString();
       let inputFilePath = inputFile.getPathInPackage();
-      let outputFilePath = TypeScript.removeTsExt(inputFilePath) + '.js';
+      let outputFilePath = inputFilePath;
       let toBeAdded = {
         sourcePath: inputFilePath,
         path: outputFilePath,
@@ -79,15 +79,18 @@ TypeScriptCompiler = class TypeScriptCompiler {
 
       let pemit = Logger.newProfiler('tsEmit');
       let result = tsBuild.emit(filePath, moduleName);
-      this.processDiagnostics(inputFile, result.diagnostics, co);
+      let throwSyntax = this.processDiagnostics(inputFile,
+        result.diagnostics, co);
       pemit.end();
 
-      toBeAdded.data = result.code;
-      let module = compilerOptions.module;
-      toBeAdded.bare = toBeAdded.bare || module === 'none';
-      toBeAdded.hash = result.hash;
-      toBeAdded.sourceMap = result.sourceMap;
-      inputFile.addJavaScript(toBeAdded);
+      if (! throwSyntax) {
+        toBeAdded.data = result.code;
+        let module = compilerOptions.module;
+        toBeAdded.bare = toBeAdded.bare || module === 'none';
+        toBeAdded.hash = result.hash;
+        toBeAdded.sourceMap = result.sourceMap;
+        inputFile.addJavaScript(toBeAdded);
+      }
 
       cb();
     }, future.resolver());
@@ -126,12 +129,13 @@ TypeScriptCompiler = class TypeScriptCompiler {
     }
 
     // Always throw syntax errors.
+    let throwSyntax = !! diagnostics.syntacticErrors.length;
     diagnostics.syntacticErrors.forEach(diagnostic => {
       reduce(diagnostic, dob => inputFile.error(dob));
     });
 
     let packageName = inputFile.getPackageName();
-    if (packageName) return;
+    if (packageName) return throwSyntax;
 
     // And log out other errors except package files.
     if (compilerOptions && compilerOptions.diagnostics) {
@@ -139,6 +143,8 @@ TypeScriptCompiler = class TypeScriptCompiler {
         reduce(diagnostic, dob => inputFile.warn(dob));
       });
     }
+
+    return throwSyntax;
   }
 
   getShallowHash(ob) {
