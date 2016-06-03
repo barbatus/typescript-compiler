@@ -15,6 +15,7 @@ TypeScriptCompiler = class TypeScriptCompiler {
     this.tsconfig.exclude = this.defExclude;
     this.cfgHash = null;
     this.diagHash = new Set;
+    this.archSet = new Set;
   }
 
   processFilesForTarget(inputFiles) {
@@ -117,12 +118,23 @@ TypeScriptCompiler = class TypeScriptCompiler {
         line: diagnostic.line,
         column: diagnostic.column
       };
-      let arch = inputFile.getShortArch();
-      dob.arch = arch === 'web' ? 'os' : 'web';
-      let hash = this.getShallowHash(dob);
-      if (! this.diagHash.has(hash)) {
+      let arch = inputFile.getArch();
+      // TODO: find out how to get list of architectures.
+      this.archSet.add(arch);
+
+      let shown = false;
+      for (let key of this.archSet.keys()) {
+        if (key !== arch) {
+          dob.arch = key;
+          let hash = this.getShallowHash(dob);
+          if (this.diagHash.has(hash)) {
+            shown = true; break;
+          }
+        }
+      }
+      if (! shown) {
         dob.arch = arch;
-        hash = this.getShallowHash(dob);
+        let hash = this.getShallowHash(dob);
         this.diagHash.add(hash);
         cb(dob);
       }
