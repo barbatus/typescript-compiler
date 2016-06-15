@@ -101,7 +101,7 @@ TypeScriptCompiler = class TypeScriptCompiler extends TypeScriptCompiler {
   copyTypings(filePath, content) {
     const fs = Plugin.fs;
     let dirPath = ts.getDirectoryPath(filePath);
-    if (! fs.existsSync(dirPath)) {
+    if (! fs.accessSync(dirPath)) {
       mkdirp.sync(Plugin.convertToOSPath(dirPath));
     }
     fs.writeFileSync(filePath, content);

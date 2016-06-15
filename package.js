@@ -1,6 +1,6 @@
 Package.describe({
   name: 'barbatus:ng2-typescript-compiler',
-  version: '0.5.2',
+  version: '0.5.3',
   summary: 'Meteor TypeScript Compiler for Angular 2',
   git: 'https://github.com/barbatus/typesctipt-compiler/tree/ts-compilers',
   documentation: 'README.md'
