@@ -53,16 +53,32 @@ describe('typescript-compiler', () => {
       expect(inputFile.result.data).toContain('exports.foo');
     });
 
-    it('should exclude files using patterns in tsconfig.exclude', () => {
-      let compiler = new TypeScriptCompiler();
+    describe('tsconfig.exclude', () => {
+      it('should exclude files using glob and flat directory patterns', () => {
+        let compiler = new TypeScriptCompiler();
 
-      let configFile = new ConfigFile({
-        exclude: ['foo/**']
+        let configFile = new ConfigFile({
+          exclude: ['foo1/**', 'foo2']
+        });
+        let inputFile1 = new InputFile(testCodeLine, 'foo1/foo.ts');
+        let inputFile2 = new InputFile(testCodeLine, 'foo2/foo.ts');
+        compiler.processFilesForTarget([inputFile1, inputFile2, configFile]);
+
+        expect(inputFile1.result).toBeNull();
+        expect(inputFile2.result).toBeNull();
       });
-      let inputFile = new InputFile(testCodeLine, 'foo/foo4.ts');
-      compiler.processFilesForTarget([inputFile, configFile]);
 
-      expect(inputFile.result).toBeNull();
+      it('should exclude a file', () => {
+        let compiler = new TypeScriptCompiler();
+
+        let configFile = new ConfigFile({
+          exclude: ['foo3/foo.ts']
+        });
+        let inputFile = new InputFile(testCodeLine, 'foo3/foo.ts');
+        compiler.processFilesForTarget([inputFile, configFile]);
+
+        expect(inputFile.result).toBeNull();
+      });
     });
   });
 
@@ -126,7 +142,7 @@ describe('typescript-compiler', () => {
       expect(serverFile.warn.calls.first().args[0].message).toContain('Client');
     });
 
-    it(`same diagnostics messages are not more than once`, () => {
+    it('same diagnostics messages are not more than once', () => {
       let wrongImport = 'import {api} from "lib";';
       let clientFile = new InputFile(wrongImport, 'common.ts', 'web');
       clientFile.warn = jasmine.createSpy();

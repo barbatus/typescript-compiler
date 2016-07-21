@@ -3,6 +3,7 @@ const Future = Npm.require('fibers/future');
 const minimatch = Npm.require('minimatch');
 const TSBuild = Npm.require('meteor-typescript').TSBuild;
 const createHash = Npm.require('crypto').createHash;
+const path = Npm.require('path');
 
 TypeScriptCompiler = class TypeScriptCompiler {
   constructor(extraOptions, maxParallelism) {
@@ -65,7 +66,7 @@ TypeScriptCompiler = class TypeScriptCompiler {
       let co = compilerOptions;
       let source = inputFile.getContentsAsString();
       let inputFilePath = inputFile.getPathInPackage();
-      let outputFilePath = inputFilePath;
+      let outputFilePath = TypeScript.removeTsExt(inputFilePath) + '.js';
       let toBeAdded = {
         sourcePath: inputFilePath,
         path: outputFilePath,
@@ -216,6 +217,12 @@ TypeScriptCompiler = class TypeScriptCompiler {
       if (! _.isArray(exclude)) {
         throw new Error('[tsconfig]: exclude is not array');
       }
+
+      exclude = exclude.filter(ex => !!ex);
+      exclude.forEach((ex, ind) => {
+        if (ex.indexOf('.') >= 0 || ex.endsWith('*')) return;
+        exclude[ind] = path.join(ex, '*');
+      });
       tsconfig.exclude = exclude.concat(this.defExclude);
 
       return tsconfig;
