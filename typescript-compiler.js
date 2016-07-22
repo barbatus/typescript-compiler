@@ -36,6 +36,10 @@ TypeScriptCompiler = class TypeScriptCompiler {
 
     let getFileContent = filePath => {
       let index = filesMap.get(filePath);
+      if (index === undefined) {
+        let filePathNoRootSlash = filePath.replace(/^\//, '');
+        index = filesMap.get(filePathNoRootSlash);
+      }
       return index !== undefined ?
         inputFiles[index].getContentsAsString() : null;
     };

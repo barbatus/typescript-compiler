@@ -115,6 +115,20 @@ describe('typescript-compiler', () => {
 
       expect(inputFile.result.bare).toBe(true);
     });
+
+    it('should resolve module path that starts with /', () => {
+      let compiler = new TypeScriptCompiler();
+      let file1 = 'import {api} from "/imports/foo7.ts"';
+      let inputFile1 = new InputFile(file1, 'client/foo6.ts');
+      inputFile1.warn = jasmine.createSpy();
+
+      let file2 = 'export const api = {}';
+      let inputFile2 = new InputFile(file2, 'imports/foo7.ts');
+
+      compiler.processFilesForTarget([inputFile1, inputFile2]);
+
+      expect(inputFile1.warn).not.toHaveBeenCalled();
+    });
   });
 
   describe('testing architecture separation', () => {
