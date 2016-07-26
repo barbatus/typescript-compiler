@@ -52,8 +52,8 @@ InputFile = class InputFile {
 }
 
 ConfigFile = class ConfigFile extends InputFile {
-  constructor(config) {
-    super(JSON.stringify(config), 'tsconfig.json');
+  constructor(config, path) {
+    super(JSON.stringify(config), !!path ? path : 'tsconfig.json');
     for (let key in config) {
       this[key] = config[key];
     }

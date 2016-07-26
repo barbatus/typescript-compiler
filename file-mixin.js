@@ -17,7 +17,8 @@ FileMixin = {
 
   // Get root app config.
   isConfig() {
-    return this.getPathInPackage() === 'tsconfig.json';
+    let filePath = this.getPathInPackage();
+    return /tsconfig\.json$/.test(filePath);
   },
 
   isDeclaration() {

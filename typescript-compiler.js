@@ -1,9 +1,25 @@
-const async = Npm.require('async');
-const Future = Npm.require('fibers/future');
-const minimatch = Npm.require('minimatch');
-const TSBuild = Npm.require('meteor-typescript').TSBuild;
-const createHash = Npm.require('crypto').createHash;
-const path = Npm.require('path');
+'use strict';
+
+import async from 'async';
+import path from 'path';
+import Future from 'fibers/future';
+import {
+  TSBuild,
+  validateTsConfig,
+  getExcludeRegExp
+} from 'meteor-typescript';
+import {createHash} from 'crypto';
+
+// Default exclude paths.
+const defExclude = ['node_modules/**'];
+
+// Paths to exclude when compiling for the server.
+const exlWebRegExp = new RegExp(
+  getExcludeRegExp(['typings/main/**', 'typings/main.d.ts']));
+
+// Paths to exclude when compiling for the client.
+const exlMainRegExp = new RegExp(
+  getExcludeRegExp(['typings/browser/**', 'typings/browser.d.ts']));
 
 TypeScriptCompiler = class TypeScriptCompiler {
   constructor(extraOptions, maxParallelism) {
@@ -11,9 +27,10 @@ TypeScriptCompiler = class TypeScriptCompiler {
 
     this.extraOptions = extraOptions;
     this.maxParallelism = maxParallelism || 10;
+    this.serverTarget = null;
     this.tsconfig = TypeScript.getDefaultOptions();
-    this.defExclude = ['**/node_modules/**'];
-    this.tsconfig.exclude = this.defExclude;
+    this.tsconfig.exclude = new RegExp(
+      getExcludeRegExp(defExclude));
     this.cfgHash = null;
     this.diagHash = new Set;
     this.archSet = new Set;
@@ -45,15 +62,19 @@ TypeScriptCompiler = class TypeScriptCompiler {
     };
 
     // Assemble options.
+    let arch = inputFiles[0].getArch();
     let typings = this.tsconfig.typings;
     let compilerOptions = this.tsconfig.compilerOptions;
+    if (!arch.startsWith('web') && this.serverTarget) {
+      compilerOptions.target = this.serverTarget;
+    }
     compilerOptions = TypeScript.getCompilerOptions(
-      compilerOptions, this.extraOptions);
+      arch, compilerOptions, this.extraOptions);
+
     let useCache = this.tsconfig.useCache;
     let buildOptions = { compilerOptions, typings, useCache };
 
     let pcompile = Logger.newProfiler('compilation');
-    let arch = inputFiles[0].getArch();
     let archFiles = this.filterArchFiles(inputFiles, arch);
     let filePaths = archFiles.map(inputFile => this.getExtendedPath(inputFile));
     Logger.log('process files: %s', filePaths);
@@ -193,57 +214,67 @@ TypeScriptCompiler = class TypeScriptCompiler {
   }
 
   processConfig(inputFiles) {
-    let cfgFile = inputFiles.filter(
-      inputFile => inputFile.isConfig())[0];
-    if (cfgFile) {
-      let source = cfgFile.getContentsAsString();
-      let hash = cfgFile.getSourceHash();
-      // If hashes differ, create new tsconfig. 
-      if (hash !== this.cfgHash) {
-        this.tsconfig = this.parseConfig(source);
-        this.cfgHash = hash;
+    let cfgFiles = inputFiles.filter(
+      inputFile => inputFile.isConfig());
+
+    for (let cfgFile of cfgFiles) {
+      let path = cfgFile.getPathInPackage();
+
+      // Parse root config.
+      if (path === 'tsconfig.json') {
+        let source = cfgFile.getContentsAsString();
+        let hash = cfgFile.getSourceHash();
+        // If hashes differ, create new tsconfig. 
+        if (hash !== this.cfgHash) {
+          this.tsconfig = this.parseConfig(source);
+          this.cfgHash = hash;
+        }
+      }
+
+      // Parse server config, and take target value. 
+      if (path === 'server/tsconfig.json') {
+        let  source= cfgFile.getContentsAsString();
+        let tsconfig = this.parseConfig(source);
+        this.serverTarget = tsconfig.compilerOptions &&
+          tsconfig.compilerOptions.target;
       }
     }
   }
 
   parseConfig(cfgContent) {
+    let tsconfig = null;
+
     try {
-      let tsconfig = JSON.parse(cfgContent);
+      tsconfig = JSON.parse(cfgContent);
 
-      let files = tsconfig.files || [];
-      if (! _.isArray(files)) {
-        throw new Error('[tsconfig]: files is not array');
-      }
-      // Allow only typings in the "files" array.
-      tsconfig.typings = this.getTypings(files);
-
-      let exclude = tsconfig.exclude || [];
-      if (! _.isArray(exclude)) {
-        throw new Error('[tsconfig]: exclude is not array');
-      }
-
-      exclude = exclude.filter(ex => !!ex);
-      exclude.forEach((ex, ind) => {
-        if (ex.indexOf('.') >= 0 || ex.endsWith('*')) return;
-        exclude[ind] = path.join(ex, '*');
-      });
-      tsconfig.exclude = exclude.concat(this.defExclude);
-
-      return tsconfig;
+      validateTsConfig(tsconfig);
     } catch(err) {
       throw new Error(`Format of the tsconfig is invalid: ${err}`);
     }
+
+    let exclude = tsconfig.exclude || [];
+    exclude = exclude.concat(defExclude);
+
+    try {
+      let regExp = getExcludeRegExp(exclude);
+      tsconfig.exclude = regExp && new RegExp(regExp);
+    } catch(err) {
+      throw new Error(`Format of an exclude path is invalid: ${err}`);
+    }
+
+    return tsconfig;
   }
 
   excludeFiles(inputFiles) {
     let resultFiles = inputFiles;
 
     let pexclude = Logger.newProfiler('exclude');
-    for (let ex of this.tsconfig.exclude) {
+    if (this.tsconfig.exclude) {
       resultFiles = resultFiles.filter(inputFile => {
         let path = inputFile.getPathInPackage();
-        Logger.assert('exclude pattern %s: %s', ex, path);
-        return ! minimatch(path, ex);
+        // There seems to an issue with getRegularExpressionForWildcard:
+        // result regexp always starts with /.
+        return ! this.tsconfig.exclude.test('/' + path);
       });
     }
     pexclude.end();
@@ -251,7 +282,17 @@ TypeScriptCompiler = class TypeScriptCompiler {
     return resultFiles;
   }
 
+  getArchCompilerOptions(arch) {
+    check(arch, String);
+
+    if (!arch.startsWith('web') && this.serverTarget) {
+      return { target: this.serverTarget };
+    }
+  }
+
   filterArchFiles(inputFiles, arch) {
+    check(arch, String);
+
     let archFiles = inputFiles.filter((inputFile, index) => {
       if (inputFile.isConfig()) return false;
 
@@ -261,16 +302,13 @@ TypeScriptCompiler = class TypeScriptCompiler {
     // Include only typings that current arch needs,
     // typings/main is for the server only and
     // typings/browser - for the client.
-    let excludes = arch.startsWith('web') ?
-      ['typings/main/**', 'typings/main.d.ts'] :
-      ['typings/browser/**', 'typings/browser.d.ts'];
+    let exclude = arch.startsWith('web') ?
+      exlWebRegExp : exlMainRegExp;
 
-    for (let ex of excludes) {
-      archFiles = archFiles.filter(inputFile => {
-        let path = inputFile.getPathInPackage();
-        return ! minimatch(path, ex);
-      });
-    }
+    archFiles = archFiles.filter(inputFile => {
+      let path = inputFile.getPathInPackage();
+      return ! exclude.test('/' + path);
+    });
 
     return archFiles;
   }

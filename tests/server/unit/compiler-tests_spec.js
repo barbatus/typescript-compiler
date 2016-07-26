@@ -12,6 +12,16 @@ describe('typescript-compiler', () => {
       expect(inputFile.result.data).toContain('exports.foo');
     });
 
+    it('should have dom lib set by default for the web', () => {
+      let compiler = new TypeScriptCompiler();
+
+      let inputFile = new InputFile('document.createElement("div")', 'foo.ts', 'web');
+      compiler.processFilesForTarget([inputFile]);
+      inputFile.warn = jasmine.createSpy();
+
+      expect(inputFile.warn).not.toHaveBeenCalled();
+    });
+
     it('should apply extra compiler options', () => {
       let compiler = new TypeScriptCompiler({
         module: 'system'
@@ -26,7 +36,7 @@ describe('typescript-compiler', () => {
     it('should exclude from node_modules by default', () => {
       let compiler = new TypeScriptCompiler();
 
-      let inputFile = new InputFile(testCodeLine, 'foo/node_modules/foo3.ts');
+      let inputFile = new InputFile(testCodeLine, 'node_modules/foo3.ts');
       compiler.processFilesForTarget([inputFile]);
 
       expect(inputFile.result).toBeNull();
@@ -51,6 +61,21 @@ describe('typescript-compiler', () => {
       configFile.compilerOptions.module = 'commonjs';
       compiler.processFilesForTarget([inputFile, configFile]);
       expect(inputFile.result.data).toContain('exports.foo');
+    });
+
+    it('should apply target from the server tsconfig.json', () => {
+      let code = 'async function test() {}';
+      let serverFile = new InputFile(code, 'foo.ts', 'os');
+      serverFile.warn = jasmine.createSpy();
+
+      let configFile = new ConfigFile({
+        compilerOptions: {
+          target: 'es6'
+        }
+      }, 'server/tsconfig.json');
+      let compiler = new TypeScriptCompiler();
+      compiler.processFilesForTarget([serverFile, configFile]);
+      expect(serverFile.warn).not.toHaveBeenCalled();
     });
 
     describe('tsconfig.exclude', () => {
