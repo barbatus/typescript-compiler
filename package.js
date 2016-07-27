@@ -1,6 +1,6 @@
 Package.describe({
   name: 'barbatus:typescript-compiler',
-  version: '0.7.0-beta.1',
+  version: '0.7.0',
   summary: 'TypeScript Compiler for Meteor',
   git: 'https://github.com/barbatus/ts-compilers',
   documentation: 'README.md'
@@ -8,12 +8,11 @@ Package.describe({
 
 Npm.depends({
   'meteor-typescript': '0.7.0',
-  'async': '1.4.0',
-  'minimatch': '3.0.0'
+  'async': '1.4.0'
 });
 
 Package.onUse(function(api) {
-  api.versionsFrom('1.4');
+  api.versionsFrom('1.3.1');
 
   api.use([
     'ecmascript@0.1.6',

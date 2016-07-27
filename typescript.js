@@ -19,20 +19,6 @@ TypeScript = {
 
   getDefaultOptions: meteorTS.getDefaultOptions,
 
-  getCompilerOptions(arch, options, ...extraOptions) {
-    let { compilerOptions } = meteorTS.getDefaultOptions(arch);
-    let resOptions = options || compilerOptions;
-
-    // Apply extra options.
-    for (let extra of extraOptions) {
-      if (extra) {
-        Object.assign(resultOptions, extra);
-      }
-    }
-
-    return resultOptions;
-  },
-
   compile(source, options) {
     options = options || meteorTS.getDefaultOptions();
     return meteorTS.compile(source, options);
