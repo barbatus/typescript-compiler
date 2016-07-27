@@ -27,7 +27,7 @@ TypeScriptCompiler = class TypeScriptCompiler {
 
     this.extraOptions = extraOptions;
     this.maxParallelism = maxParallelism || 10;
-    this.serverTarget = null;
+    this.serverOptions = null;
     this.tsconfig = TypeScript.getDefaultOptions();
     this.tsconfig.exclude = new RegExp(
       getExcludeRegExp(defExclude));
@@ -63,15 +63,15 @@ TypeScriptCompiler = class TypeScriptCompiler {
 
     // Assemble options.
     let arch = inputFiles[0].getArch();
-    let typings = this.tsconfig.typings;
-    let compilerOptions = this.tsconfig.compilerOptions;
-    if (!arch.startsWith('web') && this.serverTarget) {
-      compilerOptions.target = this.serverTarget;
+    let { compilerOptions = {}, typings, useCache } = this.tsconfig;
+    if (!/^web/.test(arch) && this.serverOptions) {
+      Object.assign(compilerOptions, this.serverOptions);
     }
-    compilerOptions = TypeScript.getCompilerOptions(
-      arch, compilerOptions, this.extraOptions);
+    // Apply extra options.
+    if (this.extraOptions) {
+      Object.assign(compilerOptions, this.extraOptions);
+    }
 
-    let useCache = this.tsconfig.useCache;
     let buildOptions = { compilerOptions, typings, useCache };
 
     let pcompile = Logger.newProfiler('compilation');
@@ -231,12 +231,15 @@ TypeScriptCompiler = class TypeScriptCompiler {
         }
       }
 
-      // Parse server config, and take target value. 
+      // Parse server config.
+      // Take only target and lib values. 
       if (path === 'server/tsconfig.json') {
         let  source= cfgFile.getContentsAsString();
-        let tsconfig = this.parseConfig(source);
-        this.serverTarget = tsconfig.compilerOptions &&
-          tsconfig.compilerOptions.target;
+        let { compilerOptions } = this.parseConfig(source);
+        if (compilerOptions) {
+          let { target , lib } = compilerOptions;
+          this.serverOptions = { target, lib };
+        }
       }
     }
   }
@@ -280,14 +283,6 @@ TypeScriptCompiler = class TypeScriptCompiler {
     pexclude.end();
 
     return resultFiles;
-  }
-
-  getArchCompilerOptions(arch) {
-    check(arch, String);
-
-    if (!arch.startsWith('web') && this.serverTarget) {
-      return { target: this.serverTarget };
-    }
   }
 
   filterArchFiles(inputFiles, arch) {

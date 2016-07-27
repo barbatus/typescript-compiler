@@ -2,4 +2,4 @@
 
 rm -fr "~/.cache"
 
-VELOCITY_TEST_PACKAGES=1 TYPESCRIPT_CACHE_DIR="~/.cache" meteor test-packages --release=1.2.1 --velocity ./
+TYPESCRIPT_CACHE_DIR="~/.cache" meteor test-packages --release=1.4 --once --driver-package=dispatch:mocha-phantomjs ./
