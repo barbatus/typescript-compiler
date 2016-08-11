@@ -1,4 +1,3 @@
-const createHash = Npm.require('crypto').createHash;
 
 FileMixin = {
   getShortArch() {

@@ -1,4 +1,4 @@
-const meteorTS = Npm.require('meteor-typescript');
+import meteorTS from 'meteor-typescript';
 
 TypeScript = {
   validateOptions(options) {
@@ -35,4 +35,4 @@ TypeScript = {
   removeTsExt(path) {
     return path && path.replace(/(\.tsx|\.ts)$/g, '');
   }
-}
+};
