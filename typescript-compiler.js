@@ -114,7 +114,6 @@ TypeScriptCompiler = class TypeScriptCompiler {
         let module = compilerOptions.module;
         toBeAdded.bare = toBeAdded.bare || module === 'none';
         toBeAdded.hash = result.hash;
-        result.sourceMap.sourcesContent = [source];
         toBeAdded.sourceMap = result.sourceMap;
         inputFile.addJavaScript(toBeAdded);
       }
