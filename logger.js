@@ -1,4 +1,4 @@
-import util from 'util';
+const util = Npm.require('util');
 
 class Logger_ {
   constructor() {

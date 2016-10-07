@@ -1,12 +1,14 @@
-import async from 'async';
-import path from 'path';
-import Future from 'fibers/future';
-import {
+const async = Npm.require('async');
+const path = Npm.require('path');
+const Future = Npm.require('fibers/future');
+
+const {
   TSBuild,
   validateTsConfig,
   getExcludeRegExp
-} from 'meteor-typescript';
-import {createHash} from 'crypto';
+} = Npm.require('meteor-typescript');
+
+const {createHash} = Npm.require('crypto');
 
 // Default exclude paths.
 const defExclude = ['node_modules/**'];
@@ -220,7 +222,7 @@ TypeScriptCompiler = class TypeScriptCompiler {
       let path = cfgFile.getPathInPackage();
 
       // Parse root config.
-      if (path === 'tsconfig.json') {
+      if (cfgFile.isConfig()) {
         let source = cfgFile.getContentsAsString();
         let hash = cfgFile.getSourceHash();
         // If hashes differ, create new tsconfig. 
@@ -232,7 +234,7 @@ TypeScriptCompiler = class TypeScriptCompiler {
 
       // Parse server config.
       // Take only target and lib values. 
-      if (path === 'server/tsconfig.json') {
+      if (cfgFile.isServerConfig()) {
         let  source= cfgFile.getContentsAsString();
         let { compilerOptions } = this.parseConfig(source);
         if (compilerOptions) {

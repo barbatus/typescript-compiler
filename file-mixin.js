@@ -20,6 +20,11 @@ FileMixin = {
     return /tsconfig\.json$/.test(filePath);
   },
 
+  isServerConfig() {
+    let filePath = this.getPathInPackage();
+    return /server\/tsconfig\.json$/.test(filePath);
+  },
+
   isDeclaration() {
     return TypeScript.isDeclarationFile(this.getBasename());
   },

@@ -1,4 +1,4 @@
-import meteorTS from 'meteor-typescript';
+const meteorTS = Npm.require('meteor-typescript');
 
 TypeScript = {
   validateOptions(options) {
