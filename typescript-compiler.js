@@ -222,7 +222,7 @@ TypeScriptCompiler = class TypeScriptCompiler {
       let path = cfgFile.getPathInPackage();
 
       // Parse root config.
-      if (cfgFile.isConfig()) {
+      if (cfgFile.isMainConfig()) {
         let source = cfgFile.getContentsAsString();
         let hash = cfgFile.getSourceHash();
         // If hashes differ, create new tsconfig. 
@@ -233,9 +233,9 @@ TypeScriptCompiler = class TypeScriptCompiler {
       }
 
       // Parse server config.
-      // Take only target and lib values. 
+      // Take only target and lib values.
       if (cfgFile.isServerConfig()) {
-        let  source= cfgFile.getContentsAsString();
+        let  source = cfgFile.getContentsAsString();
         let { compilerOptions } = this.parseConfig(source);
         if (compilerOptions) {
           let { target , lib } = compilerOptions;

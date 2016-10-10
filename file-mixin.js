@@ -15,6 +15,11 @@ FileMixin = {
   },
 
   // Get root app config.
+  isMainConfig() {
+    let filePath = this.getPathInPackage();
+    return /^tsconfig\.json$/.test(filePath);
+  },
+
   isConfig() {
     let filePath = this.getPathInPackage();
     return /tsconfig\.json$/.test(filePath);
@@ -22,7 +27,7 @@ FileMixin = {
 
   isServerConfig() {
     let filePath = this.getPathInPackage();
-    return /server\/tsconfig\.json$/.test(filePath);
+    return /^server\/tsconfig\.json$/.test(filePath);
   },
 
   isDeclaration() {
