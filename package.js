@@ -1,6 +1,6 @@
 Package.describe({
   name: 'barbatus:typescript-compiler',
-  version: '0.8.2',
+  version: '0.8.4',
   summary: 'TypeScript Compiler for Meteor',
   git: 'https://github.com/barbatus/ts-compilers',
   documentation: 'README.md'
@@ -8,7 +8,7 @@ Package.describe({
 
 Npm.depends({
   'meteor-typescript': '0.7.1',
-  'async': '1.4.0'
+  'async': '1.4.0',
 });
 
 Package.onUse(function(api) {
@@ -17,18 +17,20 @@ Package.onUse(function(api) {
   api.use([
     'ecmascript@0.4.2',
     'check@1.0.5',
-    'underscore@1.0.4'
+    'underscore@1.0.4',
   ], 'server');
 
   api.addFiles([
     'logger.js',
-    'file-mixin.js',
+    'file-utils.js',
     'typescript-compiler.js',
-    'typescript.js'
+    'typescript.js',
+    'utils.js',
   ], 'server');
 
   api.export([
-    'TypeScript', 'TypeScriptCompiler'
+    'TypeScript',
+    'TypeScriptCompiler',
   ], 'server');
 });
 
@@ -40,12 +42,12 @@ Package.onTest(function(api) {
     'practicalmeteor:sinon',
     'practicalmeteor:chai',
     'practicalmeteor:mocha',
-    'dispatch:mocha-phantomjs'
+    'dispatch:mocha-phantomjs',
   ]);
   api.use('barbatus:typescript-compiler');
 
   api.addFiles([
     'tests/server/unit/input-file.js',
-    'tests/server/unit/compiler-tests_spec.js'
+    'tests/server/unit/compiler-tests_spec.js',
   ], 'server');
 });

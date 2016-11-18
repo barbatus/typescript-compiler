@@ -29,7 +29,7 @@ TypeScript = {
   },
 
   isDeclarationFile(filePath) {
-    return filePath.match(/^.*\.d\.ts$/);
+    return /^.*\.d\.ts$/.test(filePath);
   },
 
   removeTsExt(path) {

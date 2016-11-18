@@ -7,6 +7,12 @@ const expect = chai.expect;
 describe('typescript-compiler', () => {
   let testCodeLine = 'export const foo = "foo"';
 
+  describe('TypeScriptCompiler API', () => {
+    let compiler = new TypeScriptCompiler();
+    expect(compiler.getFilesToProcess).to.be.a('function');
+    expect(compiler.getBuildOptions).to.be.a('function');
+  });
+
   describe('testing options', () => {
     it('should have commonjs by default', () => {
       let compiler = new TypeScriptCompiler();
@@ -69,6 +75,20 @@ describe('typescript-compiler', () => {
       expect(inputFile.result.data).to.contain('exports.foo');
     });
 
+
+    it('should skip any other tsconfig.json', () => {
+      let serverFile = new InputFile(testCodeLine, 'foo.ts', 'os');
+
+      let configFile = new ConfigFile({
+        compilerOptions: {
+          module: 'system'
+        }
+      }, 'node_modules/foo/tsconfig.json');
+      let compiler = new TypeScriptCompiler();
+      compiler.processFilesForTarget([serverFile, configFile]);
+      expect(serverFile.result.data).not.to.contain('System.register(\"foo\"');
+    });
+
     // TODO: check out why for-of loop raises warning here.
     it('should apply target from the server tsconfig.json', () => {
       let code = `
@@ -81,7 +101,7 @@ describe('typescript-compiler', () => {
         compilerOptions: {
           target: 'es6'
         }
-      }, 'server/tsconfig.json');
+      }, 'server/tsconfig.json', 'os');
       let compiler = new TypeScriptCompiler();
       compiler.processFilesForTarget([serverFile, configFile]);
       expect(serverFile.warn.calledOnce).to.not.be.true;

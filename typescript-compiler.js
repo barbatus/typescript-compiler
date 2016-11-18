@@ -1,25 +1,46 @@
 const async = Npm.require('async');
 const path = Npm.require('path');
+const fs = Npm.require('fs');
 const Future = Npm.require('fibers/future');
 
 const {
   TSBuild,
   validateTsConfig,
-  getExcludeRegExp
+  getExcludeRegExp,
 } = Npm.require('meteor-typescript');
 
 const {createHash} = Npm.require('crypto');
 
-// Default exclude paths.
-const defExclude = ['node_modules/**'];
+import {
+  getExtendedPath,
+  isDeclaration,
+  isConfig,
+  isMainConfig,
+  isServerConfig,
+  isBare,
+  getES6ModuleName,
+  WarnMixin,
+  extendFiles,
+  isWeb,
+} from './file-utils';
 
-// Paths to exclude when compiling for the server.
+import {
+  getShallowHash,
+} from './utils';
+
+// Default exclude paths.
+const defExclude = new RegExp(
+  getExcludeRegExp(['node_modules/**']));
+
+// What to exclude when compiling for the server.
 const exlWebRegExp = new RegExp(
   getExcludeRegExp(['typings/main/**', 'typings/main.d.ts']));
 
-// Paths to exclude when compiling for the client.
+// What to exclude when compiling for the client.
 const exlMainRegExp = new RegExp(
   getExcludeRegExp(['typings/browser/**', 'typings/browser.d.ts']));
+
+const COMPILER_REGEXP = /(\.d.ts|\.ts|\.tsx|\.tsconfig)$/;
 
 TypeScriptCompiler = class TypeScriptCompiler {
   constructor(extraOptions, maxParallelism) {
@@ -29,98 +50,95 @@ TypeScriptCompiler = class TypeScriptCompiler {
     this.maxParallelism = maxParallelism || 10;
     this.serverOptions = null;
     this.tsconfig = TypeScript.getDefaultOptions();
-    this.tsconfig.exclude = new RegExp(
-      getExcludeRegExp(defExclude));
     this.cfgHash = null;
     this.diagHash = new Set;
     this.archSet = new Set;
   }
 
-  processFilesForTarget(inputFiles) {
-    this.extendFiles(inputFiles);
+  getFilesToProcess(inputFiles) {
+    const pexclude = Logger.newProfiler('exclude');
 
-    // If tsconfig.json has changed, create new one.
-    this.processConfig(inputFiles);
+    inputFiles = this._filterByDefault(inputFiles);
 
-    inputFiles = this.excludeFiles(inputFiles);
+    this._processConfig(inputFiles);
 
-    if (! inputFiles.length) return;
+    inputFiles = this._filterByConfig(inputFiles);
 
-    let filesMap = new Map;
-    inputFiles.forEach((inputFile, index) => {
-      filesMap.set(this.getExtendedPath(inputFile), index);
-    });
+    if (inputFiles.length) {
+      const arch = inputFiles[0].getArch();
+      inputFiles = this._filterByArch(inputFiles, arch);
+    }
 
-    let getFileContent = filePath => {
-      let index = filesMap.get(filePath);
-      if (index === undefined) {
-        let filePathNoRootSlash = filePath.replace(/^\//, '');
-        index = filesMap.get(filePathNoRootSlash);
-      }
-      return index !== undefined ?
-        inputFiles[index].getContentsAsString() : null;
-    };
+    pexclude.end();
 
-    // Assemble options.
-    let arch = inputFiles[0].getArch();
-    let { compilerOptions = {}, typings, useCache } = this.tsconfig;
-    if (!/^web/.test(arch) && this.serverOptions) {
+    return inputFiles;
+  }
+
+  getBuildOptions(inputFiles) {
+    this._processConfig(inputFiles);
+
+    const inputFile = inputFiles[0];
+    let { compilerOptions } = this.tsconfig;
+    // Make a copy.
+    compilerOptions = Object.assign({}, compilerOptions);
+    if (! isWeb(inputFile) && this.serverOptions) {
       Object.assign(compilerOptions, this.serverOptions);
     }
+
     // Apply extra options.
     if (this.extraOptions) {
       Object.assign(compilerOptions, this.extraOptions);
     }
 
-    let buildOptions = { compilerOptions, typings, useCache };
-    Logger.log('compiler options: %j', compilerOptions);
+    const arch = inputFile.getArch();
+    const { typings, useCache } = this.tsconfig;
+    return { arch, compilerOptions, typings, useCache };
+  }
 
-    let pcompile = Logger.newProfiler('compilation');
-    let archFiles = this.filterArchFiles(inputFiles, arch);
-    let filePaths = archFiles.map(inputFile => this.getExtendedPath(inputFile));
-    Logger.log('process files: %s', filePaths);
-    buildOptions.arch = arch;
-    let pbuild = Logger.newProfiler('tsBuild');
-    let tsBuild = new TSBuild(filePaths, getFileContent, buildOptions);
+  processFilesForTarget(inputFiles, getDepsContent) {
+    extendFiles(inputFiles, WarnMixin);
+
+    const options = this.getBuildOptions(inputFiles);
+    Logger.log('compiler options: %j', options.compilerOptions);
+
+    inputFiles = this.getFilesToProcess(inputFiles);
+
+    if (! inputFiles.length) return;
+
+    const pcompile = Logger.newProfiler('compilation');
+    const filePaths = inputFiles.map(file => getExtendedPath(file));
+    Logger.log('compile files: %s', filePaths);
+
+    const pbuild = Logger.newProfiler('tsBuild');
+    const defaultGet = this._getContentGetter(inputFiles);
+    const getContent = filePath =>
+      (getDepsContent && getDepsContent(filePath)) || defaultGet(filePath);
+    const tsBuild = new TSBuild(filePaths, getContent, options);
     pbuild.end();
 
-    let pfiles = Logger.newProfiler('tsEmitFiles');
-    let future = new Future;
+    const pfiles = Logger.newProfiler('tsEmitFiles');
+    const future = new Future;
     // Don't emit typings.
-    archFiles = archFiles.filter(inputFile => !inputFile.isDeclaration());
-    async.eachLimit(archFiles, this.maxParallelism, (inputFile, cb) => {
-      let co = compilerOptions;
-      let source = inputFile.getContentsAsString();
-      let inputFilePath = inputFile.getPathInPackage();
-      let outputFilePath = TypeScript.removeTsExt(inputFilePath) + '.js';
-      let toBeAdded = {
-        sourcePath: inputFilePath,
-        path: outputFilePath,
-        data: source,
-        hash: inputFile.getSourceHash(),
-        sourceMap: null,
-        bare: inputFile.isBare()
-      };
+    const compileFiles = inputFiles.filter(file => ! isDeclaration(file));
+    const { compilerOptions } = options;
+    async.eachLimit(compileFiles, this.maxParallelism, (file, done) => {
+      const co = compilerOptions;
 
-      let filePath = this.getExtendedPath(inputFile);
-      let moduleName = this.getFileModuleName(inputFile, co);
+      const filePath = getExtendedPath(file);
+      // Module set none explicitly, don't use ES6 modules.
+      const moduleName = co.module === 'none' ? null : getES6ModuleName(file);
 
-      let pemit = Logger.newProfiler('tsEmit');
-      let result = tsBuild.emit(filePath, moduleName);
-      let throwSyntax = this.processDiagnostics(inputFile,
-        result.diagnostics, co);
+      const pemit = Logger.newProfiler('tsEmit');
+      const result = tsBuild.emit(filePath, moduleName);
       pemit.end();
 
+      const throwSyntax = this._processDiagnostics(file, result.diagnostics, co);
       if (! throwSyntax) {
-        toBeAdded.data = result.code;
-        let module = compilerOptions.module;
-        toBeAdded.bare = toBeAdded.bare || module === 'none';
-        toBeAdded.hash = result.hash;
-        toBeAdded.sourceMap = result.sourceMap;
-        inputFile.addJavaScript(toBeAdded);
+        const module = compilerOptions.module;
+        this._addJavaScript(file, result, module === 'none');
       }
 
-      cb();
+      done();
     }, future.resolver());
 
     pfiles.end();
@@ -130,30 +148,57 @@ TypeScriptCompiler = class TypeScriptCompiler {
     pcompile.end();
   }
 
-  extendFiles(inputFiles, mixins) {
-    mixins = _.extend({}, FileMixin, mixins);
-    inputFiles.forEach(inputFile => _.defaults(inputFile, mixins));
+  _getContentGetter(inputFiles) {
+    const filesMap = new Map;
+    inputFiles.forEach((inputFile, index) => {
+      filesMap.set(getExtendedPath(inputFile), index);
+    });
+
+    return filePath => {
+      let index = filesMap.get(filePath);
+      if (index === undefined) {
+        const filePathNoRootSlash = filePath.replace(/^\//, '');
+        index = filesMap.get(filePathNoRootSlash);
+      }
+      return index !== undefined ?
+        inputFiles[index].getContentsAsString() : null;
+    };
   }
 
-  processDiagnostics(inputFile, diagnostics, compilerOptions) {
+  _addJavaScript(inputFile, tsResult, forceBare) {
+    const source = inputFile.getContentsAsString();
+    const inputPath = inputFile.getPathInPackage();
+    const outputPath = TypeScript.removeTsExt(inputPath) + '.js';
+    const toBeAdded = {
+      sourcePath: inputPath,
+      path: outputPath,
+      data: tsResult.code,
+      hash: tsResult.hash,
+      sourceMap: tsResult.sourceMap,
+      bare: forceBare || isBare(inputFile)
+    };
+    inputFile.addJavaScript(toBeAdded);
+  }
+
+  _processDiagnostics(inputFile, diagnostics, tsOptions) {
     // Remove duplicated warnings for shared files
     // by saving hashes of already shown warnings.
-    let reduce = (diagnostic, cb) => {
+    const reduce = (diagnostic, cb) => {
       let dob = {
         message: diagnostic.message,
-        sourcePath: this.getExtendedPath(inputFile),
+        sourcePath: getExtendedPath(inputFile),
         line: diagnostic.line,
         column: diagnostic.column
       };
-      let arch = inputFile.getArch();
+      const arch = inputFile.getArch();
       // TODO: find out how to get list of architectures.
       this.archSet.add(arch);
 
       let shown = false;
-      for (let key of this.archSet.keys()) {
+      for (const key of this.archSet.keys()) {
         if (key !== arch) {
           dob.arch = key;
-          let hash = this.getShallowHash(dob);
+          const hash = getShallowHash(dob);
           if (this.diagHash.has(hash)) {
             shown = true; break;
           }
@@ -161,23 +206,23 @@ TypeScriptCompiler = class TypeScriptCompiler {
       }
       if (! shown) {
         dob.arch = arch;
-        let hash = this.getShallowHash(dob);
+        const hash = getShallowHash(dob);
         this.diagHash.add(hash);
         cb(dob);
       }
     }
 
     // Always throw syntax errors.
-    let throwSyntax = !! diagnostics.syntacticErrors.length;
+    const throwSyntax = !! diagnostics.syntacticErrors.length;
     diagnostics.syntacticErrors.forEach(diagnostic => {
       reduce(diagnostic, dob => inputFile.error(dob));
     });
 
-    let packageName = inputFile.getPackageName();
+    const packageName = inputFile.getPackageName();
     if (packageName) return throwSyntax;
 
     // And log out other errors except package files.
-    if (compilerOptions && compilerOptions.diagnostics) {
+    if (tsOptions && tsOptions.diagnostics) {
       diagnostics.semanticErrors.forEach(diagnostic => {
         reduce(diagnostic, dob => inputFile.warn(dob));
       });
@@ -186,66 +231,39 @@ TypeScriptCompiler = class TypeScriptCompiler {
     return throwSyntax;
   }
 
-  getShallowHash(ob) {
-    let hash = createHash('sha1');
-    let keys = Object.keys(ob);
-    keys.sort();
-
-    keys.forEach(key => {
-      hash.update(key).update('' + ob[key]);
-    });
-
-    return hash.digest('hex');
-  }
-
-  getExtendedPath(inputFile) {
-    let packageName = inputFile.getPackageName();
-    let packagedPath = inputFile.getPackagePrefixPath();
-
-    let filePath = packageName ?
-      ('packages/' + packagedPath) : packagedPath;
-
-    return filePath;
-  }
-
-  getFileModuleName(inputFile, options) {
+  _getFileModuleName(inputFile, options) {
     if (options.module === 'none') return null;
 
-    return inputFile.getES6ModuleName();
+    return getES6ModuleName(inputFile);
   }
 
-  processConfig(inputFiles) {
-    let cfgFiles = inputFiles.filter(
-      inputFile => inputFile.isConfig());
-
-    for (let cfgFile of cfgFiles) {
-      let path = cfgFile.getPathInPackage();
-
+  _processConfig(inputFiles) {
+    for (const inputFile of inputFiles) {
       // Parse root config.
-      if (cfgFile.isMainConfig()) {
-        let source = cfgFile.getContentsAsString();
-        let hash = cfgFile.getSourceHash();
+      if (isMainConfig(inputFile)) {
+        const source = inputFile.getContentsAsString();
+        const hash = inputFile.getSourceHash();
         // If hashes differ, create new tsconfig. 
         if (hash !== this.cfgHash) {
-          this.tsconfig = this.parseConfig(source);
+          this.tsconfig = this._parseConfig(source);
           this.cfgHash = hash;
         }
       }
 
       // Parse server config.
       // Take only target and lib values.
-      if (cfgFile.isServerConfig()) {
-        let  source = cfgFile.getContentsAsString();
-        let { compilerOptions } = this.parseConfig(source);
+      if (isServerConfig(inputFile)) {
+        const  source = inputFile.getContentsAsString();
+        const { compilerOptions } = this._parseConfig(source);
         if (compilerOptions) {
-          let { target , lib } = compilerOptions;
+          const { target, lib } = compilerOptions;
           this.serverOptions = { target, lib };
         }
       }
     }
   }
 
-  parseConfig(cfgContent) {
+  _parseConfig(cfgContent) {
     let tsconfig = null;
 
     try {
@@ -256,11 +274,9 @@ TypeScriptCompiler = class TypeScriptCompiler {
       throw new Error(`Format of the tsconfig is invalid: ${err}`);
     }
 
-    let exclude = tsconfig.exclude || [];
-    exclude = exclude.concat(defExclude);
-
+    const exclude = tsconfig.exclude || [];
     try {
-      let regExp = getExcludeRegExp(exclude);
+      const regExp = getExcludeRegExp(exclude);
       tsconfig.exclude = regExp && new RegExp(regExp);
     } catch(err) {
       throw new Error(`Format of an exclude path is invalid: ${err}`);
@@ -269,51 +285,41 @@ TypeScriptCompiler = class TypeScriptCompiler {
     return tsconfig;
   }
 
-  excludeFiles(inputFiles) {
-    let resultFiles = inputFiles;
+  _filterByDefault(inputFiles) {
+    inputFiles = inputFiles.filter(inputFile => {
+      const path = inputFile.getPathInPackage();
+      return COMPILER_REGEXP.test(path) && ! defExclude.test('/' + path);
+    });
+    return inputFiles;
+  }
 
-    let pexclude = Logger.newProfiler('exclude');
+  _filterByConfig(inputFiles) {
+    let resultFiles = inputFiles;
     if (this.tsconfig.exclude) {
       resultFiles = resultFiles.filter(inputFile => {
-        let path = inputFile.getPathInPackage();
+        const path = inputFile.getPathInPackage();
         // There seems to an issue with getRegularExpressionForWildcard:
         // result regexp always starts with /.
         return ! this.tsconfig.exclude.test('/' + path);
       });
     }
-    pexclude.end();
-
     return resultFiles;
   }
 
-  filterArchFiles(inputFiles, arch) {
+  _filterByArch(inputFiles, arch) {
     check(arch, String);
 
-    let archFiles = inputFiles.filter((inputFile, index) => {
-      if (inputFile.isConfig()) return false;
-
-      return inputFile.getArch() === arch;
+    /**
+     * Include only typings that current arch needs,
+     * typings/main is for the server only and
+     * typings/browser - for the client.
+     */
+    const filterRegExp = /^web/.test(arch) ? exlWebRegExp : exlMainRegExp;
+    inputFiles = inputFiles.filter(inputFile => {
+      const path = inputFile.getPathInPackage();
+      return ! filterRegExp.test('/' + path);
     });
 
-    // Include only typings that current arch needs,
-    // typings/main is for the server only and
-    // typings/browser - for the client.
-    let exclude = arch.startsWith('web') ?
-      exlWebRegExp : exlMainRegExp;
-
-    archFiles = archFiles.filter(inputFile => {
-      let path = inputFile.getPathInPackage();
-      return ! exclude.test('/' + path);
-    });
-
-    return archFiles;
-  }
-
-  getTypings(filePaths) {
-    check(filePaths, Array);
-
-    return filePaths.filter(filePath => {
-      return TypeScript.isDeclarationFile(filePath);
-    });
+    return inputFiles;
   }
 }

@@ -7,11 +7,11 @@ function sha1(content) {
 }
 
 InputFile = class InputFile {
-  constructor(source, fileName, arch) {
+  constructor(source, fileName, arch = 'os') {
     this.source = source;
     this.fileName = fileName;
     this.result = null;
-    this.arch = arch || 'os';
+    this.arch = arch;
   }
 
   getContentsAsString() {
@@ -52,8 +52,8 @@ InputFile = class InputFile {
 }
 
 ConfigFile = class ConfigFile extends InputFile {
-  constructor(config, path) {
-    super(JSON.stringify(config), path || 'tsconfig.json');
+  constructor(config, path, arch = 'web') {
+    super(JSON.stringify(config), path || 'tsconfig.json', arch);
     for (let key in config) {
       this[key] = config[key];
     }
