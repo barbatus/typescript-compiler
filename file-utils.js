@@ -1,3 +1,4 @@
+const colors = Npm.require('colors');
 
 export function isBare(inputFile) {
   const fileOptions = inputFile.getFileOptions();
@@ -50,8 +51,12 @@ export function getES6ModuleName(inputFile) {
 }
 
 export const WarnMixin = {
-  warn: (error) => {
+  warn(error) {
     console.log(`${error.sourcePath} (${error.line}, ${error.column}): ${error.message}`);
+  },
+  logError(error) {
+    console.log(colors.red(
+      `${error.sourcePath} (${error.line}, ${error.column}): ${error.message}`));
   }
 }
 

@@ -120,9 +120,10 @@ TypeScriptCompiler = class TypeScriptCompiler {
     const future = new Future;
     // Don't emit typings.
     const compileFiles = inputFiles.filter(file => ! isDeclaration(file));
-    const { compilerOptions } = options;
+    let throwSyntax = false;
+    const results = new Map();
     async.eachLimit(compileFiles, this.maxParallelism, (file, done) => {
-      const co = compilerOptions;
+      const co = options.compilerOptions;
 
       const filePath = getExtendedPath(file);
       // Module set none explicitly, don't use ES6 modules.
@@ -130,13 +131,11 @@ TypeScriptCompiler = class TypeScriptCompiler {
 
       const pemit = Logger.newProfiler('tsEmit');
       const result = tsBuild.emit(filePath, moduleName);
+      results.set(file, result);
       pemit.end();
 
-      const throwSyntax = this._processDiagnostics(file, result.diagnostics, co);
-      if (! throwSyntax) {
-        const module = compilerOptions.module;
-        this._addJavaScript(file, result, module === 'none');
-      }
+      throwSyntax = throwSyntax | 
+        this._processDiagnostics(file, result.diagnostics, co);
 
       done();
     }, future.resolver());
@@ -144,6 +143,16 @@ TypeScriptCompiler = class TypeScriptCompiler {
     pfiles.end();
 
     future.wait();
+
+    // '.error' seems not working, i.e., doesn't throw an error.
+    // So adding modules if no syntax errors only,
+    // and log out syntax errors onto the terminal in red.
+    if (! throwSyntax) {
+      results.forEach((result, file) => {
+        const module = options.compilerOptions.module;
+        this._addJavaScript(file, result, module === 'none');
+      });
+    }
 
     pcompile.end();
   }
@@ -204,6 +213,7 @@ TypeScriptCompiler = class TypeScriptCompiler {
           }
         }
       }
+
       if (! shown) {
         dob.arch = arch;
         const hash = getShallowHash(dob);
@@ -215,7 +225,10 @@ TypeScriptCompiler = class TypeScriptCompiler {
     // Always throw syntax errors.
     const throwSyntax = !! diagnostics.syntacticErrors.length;
     diagnostics.syntacticErrors.forEach(diagnostic => {
-      reduce(diagnostic, dob => inputFile.error(dob));
+      reduce(diagnostic, dob => {
+        inputFile.error(dob);
+        inputFile.logError(dob);
+      });
     });
 
     const packageName = inputFile.getPackageName();
