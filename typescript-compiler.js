@@ -33,6 +33,8 @@ const defExclude = new RegExp(
   getExcludeRegExp(['node_modules/**']));
 
 // What to exclude when compiling for the server.
+// typings/main and typings/browser seem to be not used
+// at all but let keep them for just in case.
 const exlWebRegExp = new RegExp(
   getExcludeRegExp(['typings/main/**', 'typings/main.d.ts']));
 
