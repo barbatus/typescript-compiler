@@ -146,9 +146,6 @@ TypeScriptCompiler = class TypeScriptCompiler {
 
     future.wait();
 
-    // '.error' seems not working, i.e., doesn't throw an error.
-    // So adding modules if no syntax errors only,
-    // and log out syntax errors onto the terminal in red.
     if (! throwSyntax) {
       results.forEach((result, file) => {
         const module = options.compilerOptions.module;
@@ -229,7 +226,6 @@ TypeScriptCompiler = class TypeScriptCompiler {
     diagnostics.syntacticErrors.forEach(diagnostic => {
       reduce(diagnostic, dob => {
         inputFile.error(dob);
-        inputFile.logError(dob);
       });
     });
 
