@@ -180,7 +180,6 @@ describe('typescript-compiler', () => {
       let inputFile2 = new InputFile(file2, 'imports/foo7.ts');
 
       compiler.processFilesForTarget([inputFile1, inputFile2]);
-
       expect(inputFile1.warn.calledOnce).to.not.be.true;
     });
   });
