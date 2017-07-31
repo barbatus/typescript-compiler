@@ -128,11 +128,8 @@ TypeScriptCompiler = class TypeScriptCompiler {
       const co = options.compilerOptions;
 
       const filePath = getExtendedPath(file);
-      // Module set none explicitly, don't use ES6 modules.
-      const moduleName = co.module === 'none' ? null : getES6ModuleName(file);
-
       const pemit = Logger.newProfiler('tsEmit');
-      const result = tsBuild.emit(filePath, moduleName);
+      const result = tsBuild.emit(filePath);
       results.set(file, result);
       pemit.end();
 
