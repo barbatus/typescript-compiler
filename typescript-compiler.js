@@ -44,6 +44,8 @@ const exlMainRegExp = new RegExp(
 
 const COMPILER_REGEXP = /(\.d.ts|\.ts|\.tsx|\.tsconfig)$/;
 
+const TS_REGEXP = /(\.ts|\.tsx)$/;
+
 TypeScriptCompiler = class TypeScriptCompiler {
   constructor(extraOptions, maxParallelism) {
     TypeScript.validateExtraOptions(extraOptions);
@@ -246,6 +248,10 @@ TypeScriptCompiler = class TypeScriptCompiler {
   }
 
   _processConfig(inputFiles) {
+    const tsFiles = inputFiles
+      .map(inputFile => inputFile.getPathInPackage())
+      .filter(filePath => TS_REGEXP.test(filePath));
+
     for (const inputFile of inputFiles) {
       // Parse root config.
       if (isMainConfig(inputFile)) {
@@ -253,29 +259,35 @@ TypeScriptCompiler = class TypeScriptCompiler {
         const hash = inputFile.getSourceHash();
         // If hashes differ, create new tsconfig. 
         if (hash !== this.cfgHash) {
-          this.tsconfig = this._parseConfig(source);
+          this.tsconfig = this._parseConfig(source, tsFiles);
           this.cfgHash = hash;
         }
+        return;
       }
 
       // Parse server config.
       // Take only target and lib values.
       if (isServerConfig(inputFile)) {
         const  source = inputFile.getContentsAsString();
-        const { compilerOptions } = this._parseConfig(source);
+        const { compilerOptions } = this._parseConfig(source, tsFiles);
         if (compilerOptions) {
           const { target, lib } = compilerOptions;
           this.serverOptions = { target, lib };
         }
+        return;
       }
     }
   }
 
-  _parseConfig(cfgContent) {
+  _parseConfig(cfgContent, tsFiles) {
     let tsconfig = null;
 
     try {
       tsconfig = JSON.parse(cfgContent);
+      // Define files since if it's not defined
+      // validation throws an exception.
+      const files = tsconfig.files || tsFiles;
+      tsconfig.files = files;
 
       validateTsConfig(tsconfig);
     } catch(err) {
